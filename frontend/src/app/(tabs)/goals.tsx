@@ -1,40 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, View } from '@/components/Themed';
 import { useGoals } from '@/hooks/useGoals';
 import Colors from '@/constants/Colors';
+import { Theme } from '@/constants/theme';
 import { SymbolView } from 'expo-symbols';
-import { AppSettings } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import { useAppSettings } from '@/hooks/useAppSettings';
 
 export default function GoalsScreen() {
   const { goals, loading, error, addGoal, removeGoal, updateGoalProgress, refresh } = useGoals();
   const tintColor = Colors.light.tint;
   
   const [newGoalTitle, setNewGoalTitle] = useState('');
-  const [settings, setSettings] = useState<AppSettings>({
-    currency: 'RM',
-    monthlyBudget: 1000,
-    dailyStudyGoal: 120,
-    notifications: true,
-  });
+  const { settings, loadSettings, setSettings } = useAppSettings();
   const [goalInput, setGoalInput] = useState('120');
   const [showSettings, setShowSettings] = useState(false);
-
-  const loadSettings = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('appSettings');
-      if (saved) {
-        const parsedSettings = JSON.parse(saved);
-        setSettings(parsedSettings);
-        setGoalInput((parsedSettings.dailyStudyGoal || 120).toString());
-      }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
-  };
+  const canAddGoal = Boolean(newGoalTitle.trim());
 
   useFocusEffect(
     useCallback(() => {
@@ -42,23 +25,34 @@ export default function GoalsScreen() {
     }, [])
   );
 
-  const saveSettings = async (newSettings: AppSettings) => {
-    try {
-      await AsyncStorage.setItem('appSettings', JSON.stringify(newSettings));
-      setSettings(newSettings);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save settings');
-    }
-  };
+  useEffect(() => {
+    setGoalInput((settings.dailyStudyGoal || 120).toString());
+  }, [settings.dailyStudyGoal]);
 
-  const handleDailyGoalSave = () => {
+  const handleDailyGoalSave = async () => {
     const goal = parseInt(goalInput) || 0;
+    console.log('GoalsScreen: Attempting to save goal:', goal);
     if (goal > 0) {
-      saveSettings({ ...settings, dailyStudyGoal: goal });
-      Alert.alert('Success', `Daily study goal updated to ${goal} minutes`);
+      try {
+        await setSettings({ ...settings, dailyStudyGoal: goal });
+        Alert.alert('Success', `Daily study goal updated to ${goal} minutes`);
+      } catch (error) {
+        console.error('GoalsScreen: Error saving daily goal:', error);
+        Alert.alert('Error', 'Failed to save settings');
+      }
     } else {
       Alert.alert('Invalid Input', 'Please enter a valid amount greater than 0');
       setGoalInput(settings.dailyStudyGoal.toString());
+    }
+  };
+
+  const handleQuickSelectGoal = async (minutes: number) => {
+    setGoalInput(minutes.toString());
+    try {
+      await setSettings({ ...settings, dailyStudyGoal: minutes });
+    } catch (error) {
+      console.error('GoalsScreen: Error saving quick select goal:', error);
+      Alert.alert('Error', 'Failed to save settings');
     }
   };
 
@@ -85,7 +79,7 @@ export default function GoalsScreen() {
       {/* Study Goals Settings Header */}
       <View style={styles.settingsHeader}>
         <Text style={styles.settingsTitle}>📚 Study Goals Settings</Text>
-        <TouchableOpacity onPress={() => setShowSettings(!showSettings)}>
+        <TouchableOpacity onPress={() => setShowSettings(!showSettings)} activeOpacity={0.85}>
           <SymbolView 
             name={showSettings ? 'chevron.up' : 'chevron.down'} 
             size={24} 
@@ -111,6 +105,7 @@ export default function GoalsScreen() {
               <TouchableOpacity
                 style={[styles.goalSaveButton, { backgroundColor: tintColor }]}
                 onPress={handleDailyGoalSave}
+                activeOpacity={0.85}
               >
                 <Text style={styles.goalSaveButtonText}>Save</Text>
               </TouchableOpacity>
@@ -130,10 +125,8 @@ export default function GoalsScreen() {
                       { backgroundColor: tintColor },
                     ],
                   ]}
-                  onPress={() => {
-                    setGoalInput(minutes.toString());
-                    saveSettings({ ...settings, dailyStudyGoal: minutes });
-                  }}
+                  onPress={() => handleQuickSelectGoal(minutes)}
+                  activeOpacity={0.85}
                 >
                   <Text
                     style={[
@@ -159,7 +152,12 @@ export default function GoalsScreen() {
           onChangeText={setNewGoalTitle}
           placeholderTextColor="#888"
         />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddGoal}>
+        <TouchableOpacity
+          style={[styles.addButton, !canAddGoal && styles.addButtonDisabled]}
+          onPress={handleAddGoal}
+          disabled={!canAddGoal}
+          activeOpacity={0.85}
+        >
           <SymbolView name="plus.circle.fill" size={24} tintColor="#fff" />
         </TouchableOpacity>
       </View>
@@ -181,12 +179,14 @@ export default function GoalsScreen() {
               <TouchableOpacity 
                 onPress={() => updateGoalProgress(item._id!, Math.min(item.progress + 10, 100))}
                 style={styles.actionButton}
+                activeOpacity={0.8}
               >
                 <SymbolView name="arrow.up.circle" size={24} tintColor="#4CAF50" />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => removeGoal(item._id!)}
                 style={styles.actionButton}
+                activeOpacity={0.8}
               >
                 <SymbolView name="trash" size={24} tintColor="#F44336" />
               </TouchableOpacity>
@@ -202,7 +202,8 @@ export default function GoalsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background,
   },
   center: {
     flex: 1,
@@ -216,17 +217,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: Theme.colors.border,
   },
   settingsTitle: {
-    fontSize: 18,
+    fontSize: Theme.typography.section,
     fontWeight: '600',
   },
   settingsCard: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: Theme.radius.md,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: Theme.colors.border,
     marginBottom: 20,
     backgroundColor: 'transparent',
   },
@@ -252,8 +253,8 @@ const styles = StyleSheet.create({
   goalInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
   goalSaveButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: Theme.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -279,9 +280,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    borderRadius: 8,
+    borderRadius: Theme.radius.sm,
     borderWidth: 1.5,
-    borderColor: '#e0e0e0',
+    borderColor: Theme.colors.border,
     alignItems: 'center',
   },
   quickSelectButtonActive: {
@@ -305,8 +306,8 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.sm,
     paddingHorizontal: 15,
     marginRight: 10,
     color: 'inherit',
@@ -315,20 +316,23 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     backgroundColor: '#2196F3',
-    borderRadius: 8,
+    borderRadius: Theme.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonDisabled: {
+    opacity: 0.5,
   },
   goalItem: {
     flexDirection: 'row',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: Theme.radius.md,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: Theme.colors.border,
     marginBottom: 10,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'transparent',
+    backgroundColor: Theme.colors.surface,
   },
   goalInfo: {
     backgroundColor: 'transparent',

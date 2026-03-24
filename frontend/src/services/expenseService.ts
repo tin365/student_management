@@ -1,12 +1,12 @@
 import api from './api';
-import { Expense } from '../types';
+import { CreateExpenseInput, Expense } from '../types';
 
 export const expenseService = {
   getAll: async () => {
     const response = await api.get<Expense[]>('/expenses');
     return response.data;
   },
-  create: async (data: Expense) => {
+  create: async (data: CreateExpenseInput) => {
     const response = await api.post<Expense>('/expenses', data);
     return response.data;
   },

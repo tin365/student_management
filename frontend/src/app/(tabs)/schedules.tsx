@@ -3,12 +3,14 @@ import { StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, K
 import { Text, View } from '@/components/Themed';
 import { useSchedules } from '@/hooks/useSchedules';
 import { SymbolView } from 'expo-symbols';
+import { Theme } from '@/constants/theme';
 
 export default function SchedulesScreen() {
   const { schedules, loading, error, addSchedule, removeSchedule, refresh } = useSchedules();
   const [title, setTitle] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const canSchedule = Boolean(title.trim() && startTime.trim() && endTime.trim());
 
   const handleAddSchedule = async () => {
     if (!title || !startTime || !endTime) return;
@@ -34,6 +36,7 @@ export default function SchedulesScreen() {
       keyboardVerticalOffset={100}
     >
       <View style={styles.container}>
+        <Text style={styles.pageTitle}>Schedules</Text>
         <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>Add Event</Text>
           <TextInput
@@ -57,7 +60,12 @@ export default function SchedulesScreen() {
             onChangeText={setEndTime}
             placeholderTextColor="#888"
           />
-          <TouchableOpacity style={styles.submitButton} onPress={handleAddSchedule}>
+          <TouchableOpacity
+            style={[styles.submitButton, !canSchedule && styles.submitButtonDisabled]}
+            onPress={handleAddSchedule}
+            disabled={!canSchedule}
+            activeOpacity={0.85}
+          >
             <Text style={styles.submitButtonText}>Schedule Event</Text>
           </TouchableOpacity>
         </View>
@@ -83,7 +91,7 @@ export default function SchedulesScreen() {
                   {new Date(item.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => removeSchedule(item._id!)}>
+              <TouchableOpacity onPress={() => removeSchedule(item._id!)} activeOpacity={0.8}>
                 <SymbolView name="trash" size={20} tintColor="#F44336" />
               </TouchableOpacity>
             </View>
@@ -98,37 +106,47 @@ export default function SchedulesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background,
+  },
+  pageTitle: {
+    fontSize: Theme.typography.title,
+    fontWeight: '700',
+    marginBottom: Theme.spacing.md,
   },
   formCard: {
-    padding: 20,
-    borderRadius: 15,
+    padding: Theme.spacing.lg,
+    borderRadius: Theme.radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: Theme.colors.border,
     marginBottom: 25,
-    backgroundColor: 'transparent',
+    backgroundColor: Theme.colors.surface,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: Theme.typography.section,
     fontWeight: 'bold',
     marginBottom: 15,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.sm,
     paddingHorizontal: 15,
     marginBottom: 12,
-    color: 'inherit',
+    color: Theme.colors.textPrimary,
+    backgroundColor: Theme.colors.surface,
   },
   submitButton: {
     height: 50,
-    backgroundColor: '#FF9800',
-    borderRadius: 8,
+    backgroundColor: Theme.colors.schedule,
+    borderRadius: Theme.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 5,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
   submitButtonText: {
     color: '#fff',
@@ -145,13 +163,13 @@ const styles = StyleSheet.create({
   scheduleItem: {
     flexDirection: 'row',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: Theme.radius.md,
     borderWidth: 1,
-    borderColor: '#f5f5f5',
+    borderColor: Theme.colors.border,
     marginBottom: 10,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'transparent',
+    backgroundColor: Theme.colors.surface,
   },
   scheduleInfo: {
     backgroundColor: 'transparent',

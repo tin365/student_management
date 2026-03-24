@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import Colors from '@/constants/Colors';
+import { Theme } from '@/constants/theme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
 export default function TabLayout() {
@@ -10,6 +11,30 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
+        tabBarInactiveTintColor: Colors.light.tabIconDefault,
+        tabBarStyle: {
+          backgroundColor: Theme.colors.surface,
+          borderTopColor: Theme.colors.border,
+          borderTopWidth: 1,
+          height: 68,
+          paddingBottom: 10,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+        sceneStyle: {
+          backgroundColor: Theme.colors.background,
+        },
+        headerStyle: {
+          backgroundColor: Theme.colors.background,
+        },
+        headerShadowVisible: false,
+        headerTitleStyle: {
+          color: Theme.colors.textPrimary,
+          fontWeight: '700',
+        },
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen

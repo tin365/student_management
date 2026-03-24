@@ -5,10 +5,10 @@ import { useGoals } from '@/hooks/useGoals';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 
-import { AppSettings } from '@/types';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { Theme } from '@/constants/theme';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -20,24 +20,7 @@ export default function DashboardScreen() {
   const { goals, refresh: refreshGoals } = useGoals();
   const router = useRouter();
   const [showRecent, setShowRecent] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>({
-    currency: 'RM',
-    monthlyBudget: 1000,
-    dailyStudyGoal: 120,
-    notifications: true,
-  });
-
-  // Load settings
-  const loadSettings = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('appSettings');
-      if (saved) {
-        setSettings(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
-  };
+  const { settings, loadSettings } = useAppSettings();
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -53,7 +36,7 @@ export default function DashboardScreen() {
     setShowRecent(!showRecent);
   };
 
-  // Calculate total in current currency for the current month
+  // Calculate totals for the current month
   const now = new Date();
   const currentMonthExpenses = expenses.filter(e => {
     const d = new Date(e.date);
@@ -64,7 +47,7 @@ export default function DashboardScreen() {
   const isOverBudget = totalSpent > settings.monthlyBudget;
   const budgetProgress = Math.min(totalSpent / settings.monthlyBudget, 1.2); // Cap at 120% for visual
 
-  // Calculate totals by category
+  // Calculate category totals (all-time)
   const categoryTotals = expenses.reduce((acc, e) => {
     const cat = e.category || 'Others';
     acc[cat] = (acc[cat] || 0) + e.amount;
@@ -94,12 +77,12 @@ export default function DashboardScreen() {
             <View>
               <Text style={styles.budgetLabel}>Spent this Month</Text>
               <Text style={[styles.budgetValue, isOverBudget && styles.textRed]}>
-                {settings.currency} {totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                RM {totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.budgetLabel}>Limit</Text>
-              <Text style={styles.budgetLimitValue}>{settings.currency} {settings.monthlyBudget.toLocaleString()}</Text>
+              <Text style={styles.budgetLimitValue}>RM {settings.monthlyBudget.toLocaleString()}</Text>
             </View>
           </View>
 
@@ -117,11 +100,11 @@ export default function DashboardScreen() {
           <View style={styles.budgetFooter}>
             {isOverBudget ? (
               <Text style={styles.overuseText}>
-                ⚠️ Overuse by {settings.currency} {(totalSpent - settings.monthlyBudget).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ⚠️ Overuse by RM {(totalSpent - settings.monthlyBudget).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             ) : (
               <Text style={styles.remainingText}>
-                Remaining: {settings.currency} {(settings.monthlyBudget - totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                Remaining: RM {(settings.monthlyBudget - totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Text>
             )}
           </View>
@@ -144,18 +127,18 @@ export default function DashboardScreen() {
             Object.entries(categoryTotals).map(([cat, amt]) => (
               <View key={cat} style={styles.categoryRow}>
                 <Text style={styles.categoryName}>{cat}</Text>
-                <Text style={styles.categoryValueRM}>{settings.currency} {amt.toLocaleString()}</Text>
+                <Text style={styles.categoryValueRM}>RM {amt.toLocaleString()}</Text>
               </View>
             ))
           ) : (
-            <Text style={styles.emptyText}>No category data</Text>
+            <Text style={styles.emptyText}>No category data yet. Add your first expense to get insights.</Text>
           )}
         </View>
       </View>
 
       {/* Recent Expenses Section */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.dropdownHeader} onPress={toggleRecent} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.dropdownHeader} onPress={toggleRecent} activeOpacity={0.85}>
           <View style={styles.dropdownTitleGroup}>
             <SymbolView name="clock.fill" size={20} tintColor="#666" />
             <Text style={styles.sectionTitleDropdown}>Usage History</Text>
@@ -175,6 +158,7 @@ export default function DashboardScreen() {
                   key={expense._id} 
                   style={styles.recentItem}
                   onPress={() => router.push('/(tabs)/log-expense')}
+                  activeOpacity={0.85}
                 >
                   <View style={styles.recentInfo}>
                     <View style={styles.categoryBadge}>
@@ -192,13 +176,13 @@ export default function DashboardScreen() {
                   </View>
                   <View style={styles.recentRight}>
                     <Text style={styles.recentAmount}>
-                      -{expense.currency || settings.currency} {expense.amount.toFixed(2)}
+                      -RM {expense.amount.toFixed(2)}
                     </Text>
                   </View>
                 </TouchableOpacity>
               ))
             ) : (
-              <Text style={styles.emptyText}>No recent expenses</Text>
+              <Text style={styles.emptyText}>No recent expenses yet.</Text>
             )}
           </View>
         )}
@@ -206,7 +190,7 @@ export default function DashboardScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Planning (Phase 5+)</Text>
-        <TouchableOpacity style={styles.upcomingCard} onPress={() => router.push('/(tabs)/study-sessions')}>
+        <TouchableOpacity style={styles.upcomingCard} onPress={() => router.push('/(tabs)/study-sessions')} activeOpacity={0.85}>
           <View style={styles.upcomingIcon}>
             <SymbolView name="timer" size={22} tintColor="#9C27B0" />
           </View>
@@ -215,7 +199,7 @@ export default function DashboardScreen() {
             <Text style={styles.upcomingDesc}>Track focus time.</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.upcomingCard} onPress={() => router.push('/(tabs)/schedules')}>
+        <TouchableOpacity style={styles.upcomingCard} onPress={() => router.push('/(tabs)/schedules')} activeOpacity={0.85}>
           <View style={styles.upcomingIcon}>
             <SymbolView name="calendar" size={22} tintColor="#FF9800" />
           </View>
@@ -232,15 +216,16 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background,
   },
   header: {
     marginBottom: 20,
     backgroundColor: 'transparent',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: Theme.typography.title,
+    fontWeight: '700',
   },
   subtitle: {
     fontSize: 16,
@@ -259,15 +244,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: Theme.typography.section,
+    fontWeight: '700',
   },
   budgetCard: {
     padding: 20,
-    borderRadius: 15,
+    borderRadius: Theme.radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
-    backgroundColor: '#fff',
+    borderColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -338,9 +323,9 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     padding: 15,
-    borderRadius: 15,
+    borderRadius: Theme.radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: Theme.colors.border,
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
@@ -355,9 +340,9 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     padding: 15,
-    borderRadius: 15,
+    borderRadius: Theme.radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: Theme.colors.border,
     backgroundColor: 'transparent',
   },
   categoryRow: {
@@ -383,10 +368,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 15,
-    borderRadius: 12,
+    borderRadius: Theme.radius.md,
     borderWidth: 1,
-    borderColor: '#eee',
-    backgroundColor: '#fafafa',
+    borderColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface,
   },
   dropdownTitleGroup: {
     flexDirection: 'row',
@@ -456,9 +441,9 @@ const styles = StyleSheet.create({
   upcomingCard: {
     flexDirection: 'row',
     padding: 15,
-    borderRadius: 12,
+    borderRadius: Theme.radius.md,
     borderWidth: 1,
-    borderColor: '#f5f5f5',
+    borderColor: Theme.colors.border,
     marginBottom: 12,
     alignItems: 'center',
     backgroundColor: 'transparent',

@@ -1,41 +1,21 @@
 import { StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from 'react';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
-import { useExpenses } from '@/hooks/useExpenses';
-import { useStudySessions } from '@/hooks/useStudySessions';
-import { useGoals } from '@/hooks/useGoals';
-import { AppSettings } from '@/types';
+import { Theme } from '@/constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { expenseService } from '@/services/expenseService';
+import { studySessionService } from '@/services/studySessionService';
+import { goalService } from '@/services/goalService';
 
 export default function SettingsScreen() {
-  const { expenses } = useExpenses();
-  const { sessions } = useStudySessions();
-  const { goals } = useGoals();
-
-  const [settings, setSettings] = useState<AppSettings>({
-    currency: 'RM',
-    monthlyBudget: 1000,
-    dailyStudyGoal: 120,
-    notifications: true,
-  });
+  const { settings, loadSettings, updateSetting, resetSettings } = useAppSettings();
   const [isExporting, setIsExporting] = useState(false);
-
-  const loadSettings = async () => {
-    try {
-      const savedSettings = await AsyncStorage.getItem('appSettings');
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
-      }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -43,24 +23,10 @@ export default function SettingsScreen() {
     }, [])
   );
 
-  const saveSettings = async (newSettings: AppSettings) => {
-    try {
-      await AsyncStorage.setItem('appSettings', JSON.stringify(newSettings));
-      setSettings(newSettings);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save settings');
-    }
-  };
-
-  const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    const newSettings = { ...settings, [key]: value };
-    saveSettings(newSettings);
-  };
-
   const handleResetData = () => {
     Alert.alert(
-      'Reset All Data',
-      'Are you sure you want to clear all your app data? This cannot be undone.',
+      'Reset Local Preferences',
+      'This only resets local app preferences (currency, budget, and notifications). Your backend records remain unchanged.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -68,11 +34,11 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.clear();
-              // You might want to add API calls here to clear backend data as well
+              await resetSettings();
               Alert.alert('Success', 'All local data has been cleared.');
-              loadSettings();
+              await loadSettings();
             } catch (error) {
+              console.error('SettingsScreen: Error clearing data:', error);
               Alert.alert('Error', 'Failed to clear data.');
             }
           }
@@ -84,9 +50,13 @@ export default function SettingsScreen() {
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
+      const [expenses, sessions, goals] = await Promise.all([
+        expenseService.getAll(),
+        studySessionService.getAll(),
+        goalService.getAll(),
+      ]);
       const now = new Date();
       const timestamp = now.toLocaleString();
-      const currencySymbol = settings.currency || 'RM';
       
       const htmlContent = `
         <html>
@@ -109,12 +79,12 @@ export default function SettingsScreen() {
             
             <div class="summary">
               <h3>App Settings</h3>
-              <p>Currency: <span class="bold">${settings.currency}</span></p>
-              <p>Budget Limit: <span class="bold">${settings.currency} ${settings.monthlyBudget.toLocaleString()}</span></p>
+              <p>Currency: <span class="bold">RM</span></p>
+              <p>Budget Limit: <span class="bold">RM ${settings.monthlyBudget.toLocaleString()}</span></p>
               <p>Daily Study Goal: <span class="bold">${settings.dailyStudyGoal} minutes</span></p>
             </div>
 
-            <h2>💰 Financial History (${settings.currency})</h2>
+            <h2>💰 Financial History</h2>
             <table>
               <tr>
                 <th>Date</th>
@@ -127,7 +97,7 @@ export default function SettingsScreen() {
                   <td>${new Date(e.date).toLocaleDateString()}</td>
                   <td>${e.category}</td>
                   <td>${e.note || '-'}</td>
-                  <td>${settings.currency} ${e.amount.toFixed(2)}</td>
+                  <td>RM ${e.amount.toFixed(2)}</td>
                 </tr>
               `).join('')}
             </table>
@@ -205,9 +175,10 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📁 Data Management</Text>
         <TouchableOpacity 
-          style={[styles.button, { backgroundColor: tintColor, marginBottom: 12 }]} 
+          style={[styles.button, { backgroundColor: tintColor, marginBottom: 12 }, isExporting && styles.buttonDisabled]} 
           onPress={exportToPDF}
           disabled={isExporting}
+          activeOpacity={0.85}
         >
           {isExporting ? (
             <ActivityIndicator color="#fff" />
@@ -219,12 +190,13 @@ export default function SettingsScreen() {
         <TouchableOpacity 
           style={[styles.button, { backgroundColor: '#F44336' }]} 
           onPress={handleResetData}
+          activeOpacity={0.85}
         >
-          <Text style={styles.buttonText}>🗑️ Reset All Data</Text>
+          <Text style={styles.buttonText}>🗑️ Reset Local Preferences</Text>
         </TouchableOpacity>
         
         <Text style={styles.settingDescription}>
-          Exports your data to a PDF or clears all local storage. Use with caution!
+          Export pulls the latest backend data on demand. Reset only clears local preferences on this device.
         </Text>
       </View>
 
@@ -246,14 +218,14 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.background,
   },
   contentContainer: {
     paddingBottom: 40,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: Theme.typography.title,
+    fontWeight: '700',
     paddingHorizontal: 20,
     paddingTop: 20,
     marginBottom: 24,
@@ -261,9 +233,10 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 28,
     paddingHorizontal: 20,
+    backgroundColor: 'transparent',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: Theme.typography.section,
     fontWeight: '600',
     marginBottom: 16,
     opacity: 0.8,
@@ -301,7 +274,7 @@ const styles = StyleSheet.create({
   budgetInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: Theme.colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -322,7 +295,7 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: Theme.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -331,6 +304,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   aboutText: {
     fontSize: 16,

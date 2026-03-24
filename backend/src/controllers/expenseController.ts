@@ -12,13 +12,57 @@ export const getExpenses = async (req: Request, res: Response) => {
 
 export const createExpense = async (req: Request, res: Response) => {
   try {
-    const { amount, currency, category, note, date } = req.body;
+    const { amount, category, note, date, monthlyBudget } = req.body;
+    const parsedAmount = Number(amount);
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ message: 'Amount must be a number greater than 0' });
+    }
+
+    const expenseDate = date ? new Date(date) : new Date();
+    if (Number.isNaN(expenseDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date' });
+    }
+
+    const parsedMonthlyBudget = Number(monthlyBudget);
+    if (Number.isFinite(parsedMonthlyBudget) && parsedMonthlyBudget > 0) {
+      const monthStart = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), 1);
+      const monthEnd = new Date(expenseDate.getFullYear(), expenseDate.getMonth() + 1, 1);
+
+      const currentMonthTotal = await Expense.aggregate([
+        {
+          $match: {
+            date: { $gte: monthStart, $lt: monthEnd },
+            currency: 'RM',
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$amount' },
+          },
+        },
+      ]);
+
+      const existingTotal = currentMonthTotal[0]?.total ?? 0;
+      if (existingTotal + parsedAmount > parsedMonthlyBudget) {
+        return res.status(409).json({
+          message: 'Monthly budget exceeded',
+          details: {
+            monthlyBudget: parsedMonthlyBudget,
+            currentMonthTotal: existingTotal,
+            attemptedTotal: existingTotal + parsedAmount,
+          },
+        });
+      }
+    }
+
     const newExpense = new Expense({
-      amount,
-      currency: currency || 'RM',
+      amount: parsedAmount,
+      currency: 'RM',
       category,
       note,
-      date: date || new Date()
+      date: expenseDate,
     });
     const savedExpense = await newExpense.save();
     res.status(201).json(savedExpense);

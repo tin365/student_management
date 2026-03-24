@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
 
 // For local development, we use the host's IP for Android/iOS testing
 // For production (Vercel/EAS), we'll use an environment variable

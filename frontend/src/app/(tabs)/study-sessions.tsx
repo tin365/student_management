@@ -3,11 +3,13 @@ import { StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, K
 import { Text, View } from '@/components/Themed';
 import { useStudySessions } from '@/hooks/useStudySessions';
 import { SymbolView } from 'expo-symbols';
+import { Theme } from '@/constants/theme';
 
 export default function StudySessionsScreen() {
   const { sessions, loading, error, addSession, removeSession, refresh } = useStudySessions();
   const [subject, setSubject] = useState('');
   const [duration, setDuration] = useState('');
+  const canSaveSession = Boolean(subject.trim() && duration.trim() && Number(duration) > 0);
 
   const handleAddSession = async () => {
     if (!subject || !duration) return;
@@ -31,6 +33,7 @@ export default function StudySessionsScreen() {
       keyboardVerticalOffset={100}
     >
       <View style={styles.container}>
+        <Text style={styles.pageTitle}>Study Sessions</Text>
         <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>Log Study Session</Text>
           <TextInput
@@ -48,7 +51,12 @@ export default function StudySessionsScreen() {
             onChangeText={setDuration}
             placeholderTextColor="#888"
           />
-          <TouchableOpacity style={styles.submitButton} onPress={handleAddSession}>
+          <TouchableOpacity
+            style={[styles.submitButton, !canSaveSession && styles.submitButtonDisabled]}
+            onPress={handleAddSession}
+            disabled={!canSaveSession}
+            activeOpacity={0.85}
+          >
             <Text style={styles.submitButtonText}>Save Session</Text>
           </TouchableOpacity>
         </View>
@@ -73,7 +81,7 @@ export default function StudySessionsScreen() {
               </View>
               <View style={styles.sessionRight}>
                 <Text style={styles.sessionDuration}>{item.duration}m</Text>
-                <TouchableOpacity onPress={() => removeSession(item._id!)}>
+                <TouchableOpacity onPress={() => removeSession(item._id!)} activeOpacity={0.8}>
                   <SymbolView name="trash" size={20} tintColor="#F44336" />
                 </TouchableOpacity>
               </View>
@@ -89,37 +97,47 @@ export default function StudySessionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background,
+  },
+  pageTitle: {
+    fontSize: Theme.typography.title,
+    fontWeight: '700',
+    marginBottom: Theme.spacing.md,
   },
   formCard: {
-    padding: 20,
-    borderRadius: 15,
+    padding: Theme.spacing.lg,
+    borderRadius: Theme.radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: Theme.colors.border,
     marginBottom: 25,
-    backgroundColor: 'transparent',
+    backgroundColor: Theme.colors.surface,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: Theme.typography.section,
     fontWeight: 'bold',
     marginBottom: 15,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.sm,
     paddingHorizontal: 15,
     marginBottom: 12,
-    color: 'inherit',
+    color: Theme.colors.textPrimary,
+    backgroundColor: Theme.colors.surface,
   },
   submitButton: {
     height: 50,
-    backgroundColor: '#9C27B0',
-    borderRadius: 8,
+    backgroundColor: Theme.colors.study,
+    borderRadius: Theme.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 5,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
   submitButtonText: {
     color: '#fff',
@@ -136,13 +154,13 @@ const styles = StyleSheet.create({
   sessionItem: {
     flexDirection: 'row',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: Theme.radius.md,
     borderWidth: 1,
-    borderColor: '#f5f5f5',
+    borderColor: Theme.colors.border,
     marginBottom: 10,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'transparent',
+    backgroundColor: Theme.colors.surface,
   },
   sessionInfo: {
     backgroundColor: 'transparent',
@@ -163,7 +181,7 @@ const styles = StyleSheet.create({
   sessionDuration: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#9C27B0',
+    color: Theme.colors.study,
     marginBottom: 8,
   },
   errorText: {

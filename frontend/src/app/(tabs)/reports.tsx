@@ -6,9 +6,8 @@ import { useStudySessions } from '@/hooks/useStudySessions';
 import { useGoals } from '@/hooks/useGoals';
 import { SymbolView } from 'expo-symbols';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import { AppSettings } from '@/types';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { Theme } from '@/constants/theme';
 
 type MonthYear = {
   month: number;
@@ -20,13 +19,7 @@ export default function ReportsScreen() {
   const { expenses, loading: loadingExp, refresh: refreshExp } = useExpenses();
   const { sessions, loading: loadingStudy, refresh: refreshStudy } = useStudySessions();
   const { goals, refresh: refreshGoals } = useGoals();
-  
-  const [settings, setSettings] = useState<AppSettings>({
-    currency: 'RM',
-    monthlyBudget: 1000,
-    dailyStudyGoal: 120,
-    notifications: true,
-  });
+  const { settings, loadSettings } = useAppSettings();
   const [selectedMonth, setSelectedMonth] = useState<MonthYear>(() => {
     const now = new Date();
     return {
@@ -35,15 +28,6 @@ export default function ReportsScreen() {
       label: now.toLocaleString('default', { month: 'long', year: 'numeric' })
     };
   });
-
-  const loadSettings = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('appSettings');
-      if (saved) {
-        setSettings(JSON.parse(saved));
-      }
-    } catch (e) {}
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -73,7 +57,10 @@ export default function ReportsScreen() {
   const monthlyExpenses = useMemo(() => 
     expenses.filter(e => {
       const d = new Date(e.date);
-      return d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year;
+      return (
+        d.getMonth() === selectedMonth.month &&
+        d.getFullYear() === selectedMonth.year
+      );
     }), [expenses, selectedMonth]);
 
   const monthlySessions = useMemo(() => 
@@ -130,6 +117,7 @@ export default function ReportsScreen() {
             key={m.label} 
             style={[styles.monthTab, selectedMonth.label === m.label && styles.monthTabActive]}
             onPress={() => setSelectedMonth(m)}
+            activeOpacity={0.85}
           >
             <Text style={[styles.monthTabText, selectedMonth.label === m.label && styles.monthTabTextActive]}>
               {m.label}
@@ -167,7 +155,7 @@ export default function ReportsScreen() {
           <View style={styles.mainStatRow}>
             <Text style={styles.mainStatLabel}>Total Spent</Text>
             <Text style={[styles.mainStatValue, totalSpent > settings.monthlyBudget && { color: '#F44336' }]}>
-              {settings.currency} {totalSpent.toLocaleString()}
+              RM {totalSpent.toLocaleString()}
             </Text>
           </View>
           <View style={styles.progressBar}>
@@ -175,12 +163,16 @@ export default function ReportsScreen() {
           </View>
           
           <Text style={styles.subSectionTitle}>Spending by Category</Text>
-          {Object.entries(expenseByCategory).map(([cat, amt]) => (
-            <View key={cat} style={styles.itemRow}>
-              <Text style={styles.itemName}>{cat}</Text>
-              <Text style={styles.itemValue}>{settings.currency} {amt.toLocaleString()}</Text>
-            </View>
-          ))}
+          {Object.keys(expenseByCategory).length === 0 ? (
+            <Text style={styles.emptyHint}>No spending data for this month.</Text>
+          ) : (
+            Object.entries(expenseByCategory).map(([cat, amt]) => (
+              <View key={cat} style={styles.itemRow}>
+                <Text style={styles.itemName}>{cat}</Text>
+                <Text style={styles.itemValue}>RM {amt.toLocaleString()}</Text>
+              </View>
+            ))
+          )}
         </View>
       </View>
 
@@ -196,12 +188,16 @@ export default function ReportsScreen() {
           </View>
           
           <Text style={styles.subSectionTitle}>Focus Areas</Text>
-          {Object.entries(studyBySubject).map(([sub, mins]) => (
-            <View key={sub} style={styles.itemRow}>
-              <Text style={styles.itemName}>{sub}</Text>
-              <Text style={styles.itemValue}>{mins}m</Text>
-            </View>
-          ))}
+          {Object.keys(studyBySubject).length === 0 ? (
+            <Text style={styles.emptyHint}>No study sessions for this month.</Text>
+          ) : (
+            Object.entries(studyBySubject).map(([sub, mins]) => (
+              <View key={sub} style={styles.itemRow}>
+                <Text style={styles.itemName}>{sub}</Text>
+                <Text style={styles.itemValue}>{mins}m</Text>
+              </View>
+            ))
+          )}
         </View>
       </View>
 
@@ -211,9 +207,9 @@ export default function ReportsScreen() {
         <View style={styles.adviceContent}>
           <Text style={styles.adviceTitle}>End of Month Insight</Text>
           <Text style={styles.adviceText}>
-            {totalSpent > settings.monthlyBudget 
-              ? `You've exceeded your budget by ${settings.currency} ${(totalSpent-settings.monthlyBudget).toFixed(2)}. Try to reduce spending next month.`
-              : `Great job staying under budget! You have ${settings.currency} ${(settings.monthlyBudget-totalSpent).toFixed(2)} left.`}
+            {totalSpent > settings.monthlyBudget
+              ? `You've exceeded your budget by RM ${(totalSpent-settings.monthlyBudget).toFixed(2)}. Try to reduce spending next month.`
+              : `Great job staying under budget! You have RM ${(settings.monthlyBudget-totalSpent).toFixed(2)} left.`}
             {"\n\n"}
             {totalStudyMinutes < (settings.dailyStudyGoal * 10)
               ? "Your study time is a bit low. Aim for more focus sessions next month to stay on top of your goals."
@@ -230,6 +226,7 @@ export default function ReportsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Theme.colors.background,
   },
   center: {
     flex: 1,
@@ -238,7 +235,7 @@ const styles = StyleSheet.create({
   },
   monthSelector: {
     paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: Theme.spacing.lg,
     backgroundColor: 'transparent',
   },
   monthTab: {
@@ -247,11 +244,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: Theme.colors.border,
   },
   monthTabActive: {
-    backgroundColor: '#000',
-    borderColor: '#000',
+    backgroundColor: Theme.colors.tint,
+    borderColor: Theme.colors.tint,
   },
   monthTabText: {
     fontSize: 13,
@@ -262,10 +259,10 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   card: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: '#fff',
+    margin: Theme.spacing.lg,
+    padding: Theme.spacing.lg,
+    borderRadius: Theme.radius.lg,
+    backgroundColor: Theme.colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
@@ -309,20 +306,20 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   section: {
-    paddingHorizontal: 20,
+    paddingHorizontal: Theme.spacing.lg,
     marginBottom: 25,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: Theme.typography.section,
+    fontWeight: '700',
     marginBottom: 15,
   },
   detailCard: {
-    padding: 20,
-    borderRadius: 15,
+    padding: Theme.spacing.lg,
+    borderRadius: Theme.radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
-    backgroundColor: 'transparent',
+    borderColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface,
   },
   mainStatRow: {
     flexDirection: 'row',
@@ -374,9 +371,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   adviceCard: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 15,
+    margin: Theme.spacing.lg,
+    padding: Theme.spacing.lg,
+    borderRadius: Theme.radius.lg,
     backgroundColor: '#FFFDE7',
     flexDirection: 'row',
     gap: 15,
@@ -393,5 +390,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     opacity: 0.8,
+  },
+  emptyHint: {
+    fontSize: 14,
+    opacity: 0.55,
+    marginBottom: 8,
   },
 });
