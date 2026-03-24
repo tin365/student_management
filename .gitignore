@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+dist/
+expo-env.d.ts
+.expo/
+backend/dist/
+frontend/dist/
+frontend/.expo/
+.env
+backend/.env
+frontend/.env
