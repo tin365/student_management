@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IExpense extends Document {
   amount: number;
+  currency: string;
   category: string;
   note: string;
   date: Date;
@@ -9,6 +10,7 @@ export interface IExpense extends Document {
 
 const ExpenseSchema: Schema = new Schema({
   amount: { type: Number, required: true },
+  currency: { type: String, required: true, default: 'RM' },
   category: { type: String, required: true },
   note: { type: String },
   date: { type: Date, default: Date.now },

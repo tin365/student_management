@@ -1,68 +1,31 @@
-# Settings Page Updates - Currency & Budget Changes
+# Update Changelog - Settings Reorganization & Currency Implementation
 
-## Changes Made
+## [1.0.5] - 2026-03-24
 
-### 1. **Currency Selection Updated**
-- **Before**: USD, EUR, GBP, JPY, INR
-- **After**: MMK (Myanmar Kyat), USD, RM (Ringgit)
+### Added
+- **Centralized Settings Type**: Added `AppSettings` interface in `frontend/src/types/index.ts` to ensure consistency across all screens.
+- **Currency Selection**: Fully implemented currency selector in `Log Expense` page supporting MMK, USD, and RM.
+- **Data Reset**: Added "Reset All Data" functionality in `Settings` page with a confirmation dialog.
+- **Dynamic Currency Display**: All financial values across Dashboard, Log Expense, and Reports now dynamically update based on the selected currency.
 
-### 2. **Monthly Budget Input Changed**
-- **Before**: Fixed preset buttons ($250, $500, $1000, $2000, $5000)
-- **After**: User input field with custom amount entry
+### Changed
+- **Settings Page Refactor**: Completely removed redundant `Financial Settings` from the main Settings tab (already moved to Log Expense).
+- **Improved PDF Export**: The PDF backup report now includes current currency, monthly budget limits, and study goals in its summary section.
+- **Report Logic**: Monthly "Grade" and advice in the Reports screen now factor in the user's custom daily study goal and monthly budget.
+- **Dashboard Sync**: Dashboard now correctly loads and displays settings whenever it comes into focus.
 
-#### Budget Input Features:
-- Text input field with numeric keyboard
-- "Save" button to confirm the amount
-- Input validation to ensure amount > 0
-- Display of current budget in selected currency
-- Success alert confirmation on save
-- Error alert for invalid inputs
+### Fixed
+- **Hardcoded Currency**: Replaced instances of hardcoded "RM" with the user's selected currency from settings.
+- **Settings Redundancy**: Resolved the discrepancy between `SETTINGS_REORGANIZATION.md` and the actual implementation in `settings.tsx`.
+- **PDF Export Context**: Fixed missing budget data in the PDF export report after reorganization.
 
-### 3. **Implementation Details**
+### Technical Details
+- Shared `AsyncStorage` key: `appSettings`
+- All screens now use a standardized pattern for loading and saving settings.
+- Improved type safety for settings updates using TypeScript generics.
 
-#### New State:
-```typescript
-const [budgetInput, setBudgetInput] = useState(settings.monthlyBudget.toString());
-```
-
-#### New Functions:
-- `handleBudgetChange(text)`: Updates input field as user types
-- `handleBudgetSave()`: Validates and saves the budget amount
-
-#### Currency Types:
-```typescript
-type Settings {
-  currency: 'MMK' | 'USD' | 'RM';
-  // ... other settings
-}
-```
-
-#### New Styles:
-- `budgetInputContainer`: Flexbox row for input + button
-- `budgetInput`: TextInput styling with theme support
-- `budgetSaveButton`: Button styling with theme color
-- `budgetSaveButtonText`: Text styling for button
-
-### 4. **UI/UX Improvements**
-- Number formatting with locale support (e.g., 1,000,000 instead of 1000000)
-- Input field respects app theme (light/dark mode)
-- Clear visual feedback with save button
-- Responsive design that works on all screen sizes
-
-## Testing Recommendations
-
-1. Test currency switching and verify display updates
-2. Test budget input with various amounts (0, negative, very large)
-3. Verify error handling for invalid inputs
-4. Confirm settings persist across app restarts
-5. Test in both light and dark modes
-
-## Files Modified
-- `/Users/mac/Personal/Khai/frontend/src/app/(tabs)/settings.tsx`
-
-## Default Values
-- Currency: MMK
-- Monthly Budget: 500,000
-- Daily Study Goal: 120 minutes
-- Notifications: Enabled
-- Dark Mode: System default
+## [1.0.4] - Previous Updates
+- Reorganized settings by moving feature-specific configs to their respective pages.
+- Moved Monthly Budget to Log Expense page.
+- Moved Daily Study Goal to Goals page.
+- Kept Notifications and Appearance in main Settings page.

@@ -1,6 +1,7 @@
 export interface Expense {
   _id?: string;
   amount: number;
+  currency: string;
   category: string;
   note?: string;
   date: Date | string;
@@ -24,6 +25,13 @@ export interface StudySession {
   date: Date | string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface AppSettings {
+  currency: 'MMK' | 'USD' | 'RM';
+  monthlyBudget: number;
+  dailyStudyGoal: number;
+  notifications: boolean;
 }
 
 export interface Schedule {

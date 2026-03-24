@@ -12,7 +12,14 @@ export const getExpenses = async (req: Request, res: Response) => {
 
 export const createExpense = async (req: Request, res: Response) => {
   try {
-    const newExpense = new Expense(req.body);
+    const { amount, currency, category, note, date } = req.body;
+    const newExpense = new Expense({
+      amount,
+      currency: currency || 'RM',
+      category,
+      note,
+      date: date || new Date()
+    });
     const savedExpense = await newExpense.save();
     res.status(201).json(savedExpense);
   } catch (error) {

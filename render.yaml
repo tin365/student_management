@@ -1,7 +1,7 @@
 services:
   - type: web
     name: khai-backend
-    env: node
+    runtime: node
     region: ohio
     plan: free
     buildCommand: cd backend && npm install && npm run build

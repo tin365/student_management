@@ -3,78 +3,67 @@ import { StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, K
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, View } from '@/components/Themed';
 import { useExpenses } from '@/hooks/useExpenses';
-import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { SymbolView } from 'expo-symbols';
-
-interface FinancialSettings {
-  currency: 'MMK' | 'USD' | 'RM';
-  monthlyBudget: number;
-}
+import { AppSettings } from '@/types';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function LogExpenseScreen() {
-  const { expenses, loading, error, addExpense, removeExpense, refresh } = useExpenses();
-  const colorScheme = useColorScheme();
-  const tintColor = Colors[colorScheme].tint;
-  
+  const { expenses, loading, error, addExpense, removeExpense } = useExpenses();
+  const tintColor = Colors.light.tint;
+
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('Food');
   const [note, setNote] = useState('');
-  const [financialSettings, setFinancialSettings] = useState<FinancialSettings>({
-    currency: 'MMK',
-    monthlyBudget: 500000,
+  const [settings, setSettings] = useState<AppSettings>({
+    currency: 'RM',
+    monthlyBudget: 1000,
+    dailyStudyGoal: 120,
+    notifications: true,
   });
-  const [budgetInput, setBudgetInput] = useState('500000');
+  const [budgetInput, setBudgetInput] = useState('1000');
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => {
-    loadFinancialSettings();
-  }, []);
-
-  const loadFinancialSettings = async () => {
+  const loadSettings = async () => {
     try {
       const saved = await AsyncStorage.getItem('appSettings');
       if (saved) {
-        const settings = JSON.parse(saved);
-        const newSettings: FinancialSettings = {
-          currency: settings.currency || 'MMK',
-          monthlyBudget: settings.monthlyBudget || 500000,
-        };
-        setFinancialSettings(newSettings);
-        setBudgetInput(newSettings.monthlyBudget.toString());
+        const parsedSettings = JSON.parse(saved);
+        setSettings(parsedSettings);
+        setBudgetInput((parsedSettings.monthlyBudget || 1000).toString());
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
   };
 
-  const saveFinancialSettings = async (newSettings: FinancialSettings) => {
-    try {
-      const existing = await AsyncStorage.getItem('appSettings');
-      const allSettings = existing ? JSON.parse(existing) : {};
-      await AsyncStorage.setItem('appSettings', JSON.stringify({
-        ...allSettings,
-        currency: newSettings.currency,
-        monthlyBudget: newSettings.monthlyBudget,
-      }));
-      setFinancialSettings(newSettings);
+  useFocusEffect(
+    useCallback(() => {
+      loadSettings();
+    }, [])
+  );
+
+  const saveSettings = async (newSettings: AppSettings) => {    try {
+      await AsyncStorage.setItem('appSettings', JSON.stringify(newSettings));
+      setSettings(newSettings);
     } catch (error) {
       Alert.alert('Error', 'Failed to save settings');
     }
   };
 
   const handleCurrencyChange = (currency: 'MMK' | 'USD' | 'RM') => {
-    saveFinancialSettings({ ...financialSettings, currency });
+    saveSettings({ ...settings, currency });
   };
 
   const handleBudgetSave = () => {
     const budget = parseInt(budgetInput) || 0;
     if (budget > 0) {
-      saveFinancialSettings({ ...financialSettings, monthlyBudget: budget });
-      Alert.alert('Success', `Monthly budget updated to ${financialSettings.currency} ${budget.toLocaleString()}`);
+      saveSettings({ ...settings, monthlyBudget: budget });
+      Alert.alert('Success', `Monthly budget updated to ${settings.currency} ${budget.toLocaleString()}`);
     } else {
       Alert.alert('Invalid Input', 'Please enter a valid amount greater than 0');
-      setBudgetInput(financialSettings.monthlyBudget.toString());
+      setBudgetInput(settings.monthlyBudget.toString());
     }
   };
 
@@ -83,17 +72,20 @@ export default function LogExpenseScreen() {
     try {
       await addExpense({
         amount: parseFloat(amount),
+        currency: settings.currency,
         category,
         note,
         date: new Date(),
       });
       setAmount('');
-      setCategory('');
       setNote('');
     } catch (err) {
       console.error(err);
     }
   };
+
+  const categories = ['Food', 'Transport', 'Entertainment', 'Others'];
+  const currencies: ('MMK' | 'USD' | 'RM')[] = ['MMK', 'USD', 'RM'];
 
   return (
     <KeyboardAvoidingView 
@@ -104,7 +96,7 @@ export default function LogExpenseScreen() {
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 20 }}>
         {/* Financial Settings Header */}
         <View style={styles.settingsHeader}>
-          <Text style={styles.settingsTitle}>💰 Financial Settings</Text>
+          <Text style={styles.settingsTitle}>💰 Financial Settings ({settings.currency})</Text>
           <TouchableOpacity onPress={() => setShowSettings(!showSettings)}>
             <SymbolView 
               name={showSettings ? 'chevron.up' : 'chevron.down'} 
@@ -117,26 +109,18 @@ export default function LogExpenseScreen() {
         {showSettings && (
           <View style={styles.settingsCard}>
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Currency</Text>
-              <View style={styles.currencyContainer}>
-                {(['MMK', 'USD', 'RM'] as const).map((curr) => (
+              <Text style={styles.settingLabel}>Currency Selection</Text>
+              <View style={styles.currencyGrid}>
+                {currencies.map((curr) => (
                   <TouchableOpacity
                     key={curr}
                     style={[
-                      styles.currencyButton,
-                      financialSettings.currency === curr && [
-                        styles.currencyButtonActive,
-                        { backgroundColor: tintColor },
-                      ],
+                      styles.currencyBtn,
+                      settings.currency === curr && { backgroundColor: tintColor, borderColor: 'transparent' },
                     ]}
                     onPress={() => handleCurrencyChange(curr)}
                   >
-                    <Text
-                      style={[
-                        styles.currencyButtonText,
-                        financialSettings.currency === curr && styles.currencyButtonTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.currencyBtnText, settings.currency === curr && { color: '#fff' }]}>
                       {curr}
                     </Text>
                   </TouchableOpacity>
@@ -145,15 +129,15 @@ export default function LogExpenseScreen() {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Monthly Budget</Text>
+              <Text style={styles.settingLabel}>Monthly Budget ({settings.currency})</Text>
               <Text style={styles.settingValue}>
-                {financialSettings.currency} {financialSettings.monthlyBudget.toLocaleString()}
+                Current Limit: {settings.currency} {settings.monthlyBudget.toLocaleString()}
               </Text>
               <View style={styles.budgetInputContainer}>
                 <TextInput
-                  style={[styles.budgetInput, { color: Colors[colorScheme].text }]}
+                  style={[styles.budgetInput, { color: Colors.light.text }]}
                   placeholder="Enter budget amount"
-                  placeholderTextColor={Colors[colorScheme].text + '80'}
+                  placeholderTextColor={Colors.light.text + '80'}
                   keyboardType="number-pad"
                   value={budgetInput}
                   onChangeText={setBudgetInput}
@@ -172,24 +156,39 @@ export default function LogExpenseScreen() {
         {/* Expense Form */}
         <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>New Expense</Text>
+          
+          <Text style={styles.formLabel}>Amount ({settings.currency})</Text>
           <TextInput
             style={styles.input}
-            placeholder={`Amount (${financialSettings.currency})`}
+            placeholder="0.00"
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
             placeholderTextColor="#888"
           />
+
+          <Text style={styles.formLabel}>Category</Text>
+          <View style={styles.categoryGrid}>
+            {categories.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.categoryBtn,
+                  category === cat && { backgroundColor: tintColor, borderColor: 'transparent' },
+                ]}
+                onPress={() => setCategory(cat)}
+              >
+                <Text style={[styles.categoryBtnText, category === cat && { color: '#fff' }]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.formLabel}>Description / Note</Text>
           <TextInput
             style={styles.input}
-            placeholder="Category (e.g., Food, Travel)"
-            value={category}
-            onChangeText={setCategory}
-            placeholderTextColor="#888"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Note (optional)"
+            placeholder="What was this for?"
             value={note}
             onChangeText={setNote}
             placeholderTextColor="#888"
@@ -215,12 +214,21 @@ export default function LogExpenseScreen() {
             <View style={styles.expenseItem}>
               <View style={styles.expenseInfo}>
                 <Text style={styles.expenseCategory}>{item.category}</Text>
-                <Text style={styles.expenseNote}>{item.note}</Text>
-                <Text style={styles.expenseDate}>{new Date(item.date).toLocaleDateString()}</Text>
+                {item.note ? <Text style={styles.expenseNote}>{item.note}</Text> : null}
+                <Text style={styles.expenseDate}>
+                  {new Date(item.date).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </Text>
               </View>
               <View style={styles.expenseRight}>
                 <Text style={styles.expenseAmount}>
-                  -{financialSettings.currency} {item.amount.toFixed(2)}
+                  -{item.currency || settings.currency} {item.amount.toFixed(2)}
                 </Text>
                 <TouchableOpacity onPress={() => removeExpense(item._id!)}>
                   <SymbolView name="trash" size={20} tintColor="#F44336" />
@@ -274,29 +282,21 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginBottom: 10,
   },
-  currencyContainer: {
+  currencyGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 8,
+    marginTop: 5,
   },
-  currencyButton: {
+  currencyBtn: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#ddd',
     alignItems: 'center',
   },
-  currencyButtonActive: {
-    borderColor: 'transparent',
-  },
-  currencyButtonText: {
+  currencyBtnText: {
     fontSize: 12,
-    fontWeight: '500',
-  },
-  currencyButtonTextActive: {
-    color: '#fff',
     fontWeight: '600',
   },
   budgetInputContainer: {
@@ -338,6 +338,32 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    marginTop: 5,
+    opacity: 0.7,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 15,
+    backgroundColor: 'transparent',
+  },
+  categoryBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 4,
+  },
+  categoryBtnText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   input: {
     height: 50,

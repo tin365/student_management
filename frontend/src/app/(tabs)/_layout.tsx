@@ -3,16 +3,13 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
+        tabBarActiveTintColor: Colors.light.tint,
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
@@ -20,15 +17,7 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chart.bar.fill',
-                android: 'bar_chart',
-                web: 'bar_chart',
-              }}
-              tintColor={color}
-              size={28}
-            />
+            <SymbolView name="chart.bar.fill" tintColor={color} size={28} />
           ),
         }}
       />
@@ -37,15 +26,7 @@ export default function TabLayout() {
         options={{
           title: 'Log Expense',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'plus.circle.fill',
-                android: 'add_circle',
-                web: 'add_circle',
-              }}
-              tintColor={color}
-              size={28}
-            />
+            <SymbolView name="plus.circle.fill" tintColor={color} size={28} />
           ),
         }}
       />
@@ -54,15 +35,7 @@ export default function TabLayout() {
         options={{
           title: 'Goals',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'target',
-                android: 'track_changes',
-                web: 'track_changes',
-              }}
-              tintColor={color}
-              size={28}
-            />
+            <SymbolView name="target" tintColor={color} size={28} />
           ),
         }}
       />
@@ -71,15 +44,16 @@ export default function TabLayout() {
         options={{
           title: 'Study',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'timer',
-                android: 'timer',
-                web: 'timer',
-              }}
-              tintColor={color}
-              size={28}
-            />
+            <SymbolView name="timer" tintColor={color} size={28} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="reports"
+        options={{
+          title: 'Reports',
+          tabBarIcon: ({ color }) => (
+            <SymbolView name="doc.text.magnifyingglass" tintColor={color} size={28} />
           ),
         }}
       />
@@ -88,15 +62,7 @@ export default function TabLayout() {
         options={{
           title: 'Schedule',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'calendar',
-                android: 'calendar_today',
-                web: 'calendar_today',
-              }}
-              tintColor={color}
-              size={28}
-            />
+            <SymbolView name="calendar" tintColor={color} size={28} />
           ),
         }}
       />
@@ -105,15 +71,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'gearshape.fill',
-                android: 'settings',
-                web: 'settings',
-              }}
-              tintColor={color}
-              size={28}
-            />
+            <SymbolView name="gearshape.fill" tintColor={color} size={28} />
           ),
         }}
       />

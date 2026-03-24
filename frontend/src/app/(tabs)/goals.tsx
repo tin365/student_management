@@ -3,55 +3,49 @@ import { StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, A
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, View } from '@/components/Themed';
 import { useGoals } from '@/hooks/useGoals';
-import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { SymbolView } from 'expo-symbols';
-
-interface StudySettings {
-  dailyStudyGoal: number;
-}
+import { AppSettings } from '@/types';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function GoalsScreen() {
   const { goals, loading, error, addGoal, removeGoal, updateGoalProgress, refresh } = useGoals();
-  const colorScheme = useColorScheme();
-  const tintColor = Colors[colorScheme].tint;
+  const tintColor = Colors.light.tint;
   
   const [newGoalTitle, setNewGoalTitle] = useState('');
-  const [studySettings, setStudySettings] = useState<StudySettings>({
+  const [settings, setSettings] = useState<AppSettings>({
+    currency: 'RM',
+    monthlyBudget: 1000,
     dailyStudyGoal: 120,
+    notifications: true,
   });
   const [goalInput, setGoalInput] = useState('120');
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => {
-    loadStudySettings();
-  }, []);
-
-  const loadStudySettings = async () => {
+  const loadSettings = async () => {
     try {
       const saved = await AsyncStorage.getItem('appSettings');
       if (saved) {
-        const settings = JSON.parse(saved);
-        const newSettings: StudySettings = {
-          dailyStudyGoal: settings.dailyStudyGoal || 120,
-        };
-        setStudySettings(newSettings);
-        setGoalInput(newSettings.dailyStudyGoal.toString());
+        const parsedSettings = JSON.parse(saved);
+        setSettings(parsedSettings);
+        setGoalInput((parsedSettings.dailyStudyGoal || 120).toString());
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
   };
 
-  const saveStudySettings = async (newSettings: StudySettings) => {
+  useFocusEffect(
+    useCallback(() => {
+      loadSettings();
+    }, [])
+  );
+
+  const saveSettings = async (newSettings: AppSettings) => {
     try {
-      const existing = await AsyncStorage.getItem('appSettings');
-      const allSettings = existing ? JSON.parse(existing) : {};
-      await AsyncStorage.setItem('appSettings', JSON.stringify({
-        ...allSettings,
-        dailyStudyGoal: newSettings.dailyStudyGoal,
-      }));
-      setStudySettings(newSettings);
+      await AsyncStorage.setItem('appSettings', JSON.stringify(newSettings));
+      setSettings(newSettings);
     } catch (error) {
       Alert.alert('Error', 'Failed to save settings');
     }
@@ -60,11 +54,11 @@ export default function GoalsScreen() {
   const handleDailyGoalSave = () => {
     const goal = parseInt(goalInput) || 0;
     if (goal > 0) {
-      saveStudySettings({ dailyStudyGoal: goal });
+      saveSettings({ ...settings, dailyStudyGoal: goal });
       Alert.alert('Success', `Daily study goal updated to ${goal} minutes`);
     } else {
       Alert.alert('Invalid Input', 'Please enter a valid amount greater than 0');
-      setGoalInput(studySettings.dailyStudyGoal.toString());
+      setGoalInput(settings.dailyStudyGoal.toString());
     }
   };
 
@@ -104,12 +98,12 @@ export default function GoalsScreen() {
         <View style={styles.settingsCard}>
           <View style={styles.settingItem}>
             <Text style={styles.settingLabel}>Daily Study Goal (minutes)</Text>
-            <Text style={styles.settingValue}>{studySettings.dailyStudyGoal} min/day</Text>
+            <Text style={styles.settingValue}>{settings.dailyStudyGoal} min/day</Text>
             <View style={styles.goalInputContainer}>
               <TextInput
-                style={[styles.goalInput, { color: Colors[colorScheme].text }]}
+                style={[styles.goalInput, { color: Colors.light.text }]}
                 placeholder="Enter daily goal in minutes"
-                placeholderTextColor={Colors[colorScheme].text + '80'}
+                placeholderTextColor={Colors.light.text + '80'}
                 keyboardType="number-pad"
                 value={goalInput}
                 onChangeText={setGoalInput}
@@ -131,20 +125,20 @@ export default function GoalsScreen() {
                   key={minutes}
                   style={[
                     styles.quickSelectButton,
-                    studySettings.dailyStudyGoal === minutes && [
+                    settings.dailyStudyGoal === minutes && [
                       styles.quickSelectButtonActive,
                       { backgroundColor: tintColor },
                     ],
                   ]}
                   onPress={() => {
                     setGoalInput(minutes.toString());
-                    saveStudySettings({ dailyStudyGoal: minutes });
+                    saveSettings({ ...settings, dailyStudyGoal: minutes });
                   }}
                 >
                   <Text
                     style={[
                       styles.quickSelectButtonText,
-                      studySettings.dailyStudyGoal === minutes && styles.quickSelectButtonTextActive,
+                      settings.dailyStudyGoal === minutes && styles.quickSelectButtonTextActive,
                     ]}
                   >
                     {minutes}
