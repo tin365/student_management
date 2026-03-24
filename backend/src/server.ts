@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import connectDB from './config/db';
+import connectDB from './config/db.js';
 
 dotenv.config();
 
@@ -15,10 +15,10 @@ app.use(express.json());
 connectDB();
 
 // Route Imports
-import expenseRoutes from './routes/expenseRoutes';
-import goalRoutes from './routes/goalRoutes';
-import studySessionRoutes from './routes/studySessionRoutes';
-import scheduleRoutes from './routes/scheduleRoutes';
+import expenseRoutes from './routes/expenseRoutes.js';
+import goalRoutes from './routes/goalRoutes.js';
+import studySessionRoutes from './routes/studySessionRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
 
 // API Routes
 app.use('/api/expenses', expenseRoutes);

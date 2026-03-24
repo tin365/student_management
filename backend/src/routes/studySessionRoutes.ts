@@ -1,5 +1,5 @@
 import express from 'express';
-import { getStudySessions, createStudySession, updateStudySession, deleteStudySession } from '../controllers/studySessionController';
+import { getStudySessions, createStudySession, updateStudySession, deleteStudySession } from '../controllers/studySessionController.js';
 
 const router = express.Router();
 

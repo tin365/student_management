@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Expense from '../models/Expense';
+import Expense from '../models/Expense.js';
 
 export const getExpenses = async (req: Request, res: Response) => {
   try {

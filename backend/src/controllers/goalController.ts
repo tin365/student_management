@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Goal from '../models/Goal';
+import Goal from '../models/Goal.js';
 
 export const getGoals = async (req: Request, res: Response) => {
   try {

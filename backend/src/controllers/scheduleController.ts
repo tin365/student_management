@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Schedule from '../models/Schedule';
+import Schedule from '../models/Schedule.js';
 
 export const getSchedules = async (req: Request, res: Response) => {
   try {
