@@ -67,6 +67,40 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="study-sessions"
+        options={{
+          title: 'Study',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{
+                ios: 'timer',
+                android: 'timer',
+                web: 'timer',
+              }}
+              tintColor={color}
+              size={28}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="schedules"
+        options={{
+          title: 'Schedule',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{
+                ios: 'calendar',
+                android: 'calendar_today',
+                web: 'calendar_today',
+              }}
+              tintColor={color}
+              size={28}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
