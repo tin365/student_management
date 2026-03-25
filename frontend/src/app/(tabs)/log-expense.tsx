@@ -23,8 +23,9 @@ export default function LogExpenseScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      console.log('LogExpenseScreen focused, loading settings');
       loadSettings();
-    }, [])
+    }, [loadSettings])
   );
 
   useEffect(() => {
@@ -49,7 +50,14 @@ export default function LogExpenseScreen() {
   };
 
   const handleAddExpense = async () => {
-    if (!amount || !category) return;
+    console.log('handleAddExpense called');
+    console.log('amount:', amount, 'category:', category);
+    
+    if (!amount.trim() || !category.trim()) {
+      Alert.alert('Validation Error', 'Please enter both amount and category');
+      return;
+    }
+    
     const expenseAmount = parseFloat(amount);
     if (!Number.isFinite(expenseAmount) || expenseAmount <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0.');
@@ -78,23 +86,24 @@ export default function LogExpenseScreen() {
 
     setIsSubmitting(true);
     try {
-      await addExpense({
+      const expenseData = {
         amount: expenseAmount,
-        currency: 'RM',
+        currency: 'RM' as const,
         category,
-        note,
-        date: new Date(),
+        note: note || '',
+        date: new Date().toISOString(),
         monthlyBudget: settings.monthlyBudget,
-      });
+      };
+      console.log('Creating expense with data:', expenseData);
+      const result = await addExpense(expenseData);
+      console.log('Expense created successfully:', result);
       setAmount('');
       setNote('');
       Alert.alert('Success', `Expense of RM ${expenseAmount.toFixed(2)} logged successfully.`);
     } catch (err) {
-      console.error(err);
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to log expense. Please try again.';
-      Alert.alert('Could not log expense', message);
+      console.error('Error adding expense:', err);
+      const errorMessage = (err as any)?.response?.data?.message || (err as any)?.message || 'Failed to log expense. Please try again.';
+      Alert.alert('Could not log expense', String(errorMessage));
     } finally {
       setIsSubmitting(false);
     }
