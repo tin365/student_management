@@ -2,6 +2,7 @@ import { StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, TextInput, Act
 import { useState } from 'react';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
@@ -12,10 +13,12 @@ import { useAppSettings } from '@/hooks/useAppSettings';
 import { expenseService } from '@/services/expenseService';
 import { studySessionService } from '@/services/studySessionService';
 import { goalService } from '@/services/goalService';
+import { performStrictReset } from '@/utils/strictReset';
 
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSetting, resetSettings } = useAppSettings();
   const [isExporting, setIsExporting] = useState(false);
+  const [isStrictResetting, setIsStrictResetting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useFocusEffect(
@@ -46,6 +49,49 @@ export default function SettingsScreen() {
             } catch (error) {
               console.error('SettingsScreen: Error resetting data:', error);
               Alert.alert('Error', 'Failed to reset preferences. Please try again.');
+            }
+          }
+        },
+      ]
+    );
+  };
+
+  const handleStrictReset = () => {
+    Alert.alert(
+      '⚠️ STRICT RESET - COMPLETE DATA WIPE',
+      'This will DELETE ALL local data from this device:\n\n• App preferences\n• Cached data\n• All local storage\n\nThis action CANNOT be undone. Your backend records remain in the database.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'I understand, proceed', 
+          style: 'destructive',
+          onPress: async () => {
+            setIsStrictResetting(true);
+            try {
+              console.log('SettingsScreen: Starting STRICT RESET');
+              const stats = await performStrictReset();
+              console.log('SettingsScreen: Strict reset completed', stats);
+              setRefreshKey(prev => prev + 1);
+              
+              Alert.alert(
+                '✨ Strict Reset Complete',
+                `Successfully cleared ${stats.itemsCleared} items from device storage.\n\nPlease restart the app to complete the reset process.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // In a real app, you might reload the app here
+                      // For now, just reset the local state
+                      setIsStrictResetting(false);
+                    }
+                  }
+                ]
+              );
+            } catch (error) {
+              console.error('SettingsScreen: Error during strict reset:', error);
+              const errorMsg = error instanceof Error ? error.message : String(error);
+              Alert.alert('Strict Reset Failed', `An error occurred: ${errorMsg}`);
+              setIsStrictResetting(false);
             }
           }
         },
@@ -194,15 +240,28 @@ export default function SettingsScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.button, { backgroundColor: '#F44336' }]} 
+          style={[styles.button, { backgroundColor: '#F44336', marginBottom: 12 }]} 
           onPress={handleResetData}
           activeOpacity={0.85}
         >
           <Text style={styles.buttonText}>🗑️ Reset Local Preferences</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: '#C62828' }, isStrictResetting && styles.buttonDisabled]} 
+          onPress={handleStrictReset}
+          disabled={isStrictResetting}
+          activeOpacity={0.85}
+        >
+          {isStrictResetting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>⚠️ STRICT RESET (Wipe All Data)</Text>
+          )}
+        </TouchableOpacity>
         
         <Text style={styles.settingDescription}>
-          Export pulls the latest backend data on demand. Reset only clears local preferences on this device.
+          Export pulls the latest backend data on demand. Reset clears local preferences on this device only. Strict Reset wipes ALL device storage completely.
         </Text>
       </View>
 
