@@ -16,11 +16,13 @@ import { goalService } from '@/services/goalService';
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSetting, resetSettings } = useAppSettings();
   const [isExporting, setIsExporting] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
+      console.log('SettingsScreen: Page focused, loading settings');
       loadSettings();
-    }, [])
+    }, [loadSettings])
   );
 
   const handleResetData = () => {
@@ -34,12 +36,16 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('SettingsScreen: Starting reset of local preferences');
               await resetSettings();
-              Alert.alert('Success', 'All local data has been cleared.');
+              console.log('SettingsScreen: Reset completed, reloading settings');
               await loadSettings();
+              console.log('SettingsScreen: Settings reloaded after reset');
+              setRefreshKey(prev => prev + 1);
+              Alert.alert('Success', 'All local preferences have been reset to defaults.');
             } catch (error) {
-              console.error('SettingsScreen: Error clearing data:', error);
-              Alert.alert('Error', 'Failed to clear data.');
+              console.error('SettingsScreen: Error resetting data:', error);
+              Alert.alert('Error', 'Failed to reset preferences. Please try again.');
             }
           }
         },

@@ -74,9 +74,16 @@ export function useAppSettings() {
   );
 
   const resetSettings = useCallback(async () => {
-    await AsyncStorage.removeItem(APP_SETTINGS_STORAGE_KEY);
-    setSettingsState(defaultAppSettings);
-    appSettingsListeners.forEach((listener) => listener(defaultAppSettings));
+    try {
+      console.log('useAppSettings: Resetting to defaults:', defaultAppSettings);
+      await AsyncStorage.removeItem(APP_SETTINGS_STORAGE_KEY);
+      setSettingsState(defaultAppSettings);
+      appSettingsListeners.forEach((listener) => listener(defaultAppSettings));
+      console.log('useAppSettings: Reset completed and listeners notified');
+    } catch (error) {
+      console.error('useAppSettings: Error during reset:', error);
+      throw error;
+    }
   }, []);
 
   return {
