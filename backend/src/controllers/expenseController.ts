@@ -1,16 +1,16 @@
 import { Request, Response } from 'express';
 import Expense from '../models/Expense.js';
 
-export const getExpenses = async (req: Request, res: Response) => {
+export const getExpenses = async (req: any, res: Response) => {
   try {
-    const expenses = await Expense.find().sort({ date: -1 });
+    const expenses = await Expense.find({ user: req.user._id }).sort({ date: -1 });
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error });
   }
 };
 
-export const createExpense = async (req: Request, res: Response) => {
+export const createExpense = async (req: any, res: Response) => {
   try {
     const { amount, category, note, date, monthlyBudget } = req.body;
     const parsedAmount = Number(amount);
@@ -32,6 +32,7 @@ export const createExpense = async (req: Request, res: Response) => {
       const currentMonthTotal = await Expense.aggregate([
         {
           $match: {
+            user: req.user._id,
             date: { $gte: monthStart, $lt: monthEnd },
             currency: 'RM',
           },
@@ -63,6 +64,7 @@ export const createExpense = async (req: Request, res: Response) => {
       category,
       note,
       date: expenseDate,
+      user: req.user._id,
     });
     const savedExpense = await newExpense.save();
     res.status(201).json(savedExpense);
@@ -71,9 +73,13 @@ export const createExpense = async (req: Request, res: Response) => {
   }
 };
 
-export const updateExpense = async (req: Request, res: Response) => {
+export const updateExpense = async (req: any, res: Response) => {
   try {
-    const updatedExpense = await Expense.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updatedExpense = await Expense.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      req.body,
+      { new: true }
+    );
     if (!updatedExpense) return res.status(404).json({ message: 'Not Found' });
     res.json(updatedExpense);
   } catch (error) {
@@ -81,9 +87,9 @@ export const updateExpense = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteExpense = async (req: Request, res: Response) => {
+export const deleteExpense = async (req: any, res: Response) => {
   try {
-    const deletedExpense = await Expense.findByIdAndDelete(req.params.id);
+    const deletedExpense = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user._id });
     if (!deletedExpense) return res.status(404).json({ message: 'Not Found' });
     res.json({ message: 'Expense deleted' });
   } catch (error) {

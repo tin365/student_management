@@ -15,12 +15,14 @@ app.use(express.json());
 connectDB();
 
 // Route Imports
+import userRoutes from './routes/userRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import goalRoutes from './routes/goalRoutes.js';
 import studySessionRoutes from './routes/studySessionRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
 
 // API Routes
+app.use('/api/users', userRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/study-sessions', studySessionRoutes);
