@@ -49,7 +49,7 @@ export const registerUser = async (req: Request, res: Response) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        token: generateToken(user._id as string),
+        token: generateToken((user._id as any).toString()),
       });
     }
   } catch (error) {
@@ -69,7 +69,7 @@ export const loginUser = async (req: Request, res: Response) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        token: generateToken(user._id as string),
+        token: generateToken((user._id as any).toString()),
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
