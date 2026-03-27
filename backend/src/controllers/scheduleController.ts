@@ -3,7 +3,7 @@ import Schedule from '../models/Schedule.js';
 
 export const getSchedules = async (req: any, res: Response) => {
   try {
-    const schedules = await Schedule.find({ user: req.user._id }).sort({ startTime: 1 });
+    const schedules = await Schedule.find({}).sort({ startTime: 1 });
     res.json(schedules);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error });
@@ -12,7 +12,7 @@ export const getSchedules = async (req: any, res: Response) => {
 
 export const createSchedule = async (req: any, res: Response) => {
   try {
-    const newSchedule = new Schedule({ ...req.body, user: req.user._id });
+    const newSchedule = new Schedule({ ...req.body });
     const savedSchedule = await newSchedule.save();
     res.status(201).json(savedSchedule);
   } catch (error) {
@@ -23,7 +23,7 @@ export const createSchedule = async (req: any, res: Response) => {
 export const updateSchedule = async (req: any, res: Response) => {
   try {
     const updatedSchedule = await Schedule.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
+      { _id: req.params.id },
       req.body,
       { new: true }
     );
@@ -36,7 +36,7 @@ export const updateSchedule = async (req: any, res: Response) => {
 
 export const deleteSchedule = async (req: any, res: Response) => {
   try {
-    const deletedSchedule = await Schedule.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const deletedSchedule = await Schedule.findOneAndDelete({ _id: req.params.id });
     if (!deletedSchedule) return res.status(404).json({ message: 'Not Found' });
     res.json({ message: 'Schedule deleted' });
   } catch (error) {
