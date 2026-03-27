@@ -63,7 +63,6 @@ export const createExpense = async (req: any, res: Response) => {
       category,
       note,
       date: expenseDate,
-      user: req.user._id,
     });
     const savedExpense = await newExpense.save();
     res.status(201).json(savedExpense);
