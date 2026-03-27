@@ -1,11 +1,17 @@
 import axios from 'axios';
 
-// For local development, we use the host's IP for Android/iOS testing
-// For production (Vercel/EAS), we'll use an environment variable
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001/api';
+// Ensure the URL always ends with /api even if configured without it
+const getBaseUrl = () => {
+  let url = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001/api';
+  if (!url.endsWith('/api') && !url.includes('/api/')) {
+    url = url.endsWith('/') ? `${url}api` : `${url}/api`;
+  }
+  return url;
+};
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: getBaseUrl(),
+  timeout: 15000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
   },

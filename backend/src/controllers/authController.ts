@@ -14,10 +14,12 @@ const generateToken = (id: string) => {
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
+    console.log('Register request received:', req.body);
     const { name, email, password } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
+      console.log('User already exists:', email);
       return res.status(400).json({ message: 'User already exists' });
     }
 
@@ -44,6 +46,7 @@ export const registerUser = async (req: Request, res: Response) => {
         console.log(`First user ${email} registered as admin and claimed all orphaned data.`);
       }
 
+      console.log('User registered successfully:', user);
       res.status(201).json({
         _id: user._id,
         name: user.name,
@@ -53,17 +56,20 @@ export const registerUser = async (req: Request, res: Response) => {
       });
     }
   } catch (error) {
+    console.error('Error during registration:', error);
     res.status(400).json({ message: 'Bad Request', error });
   }
 };
 
 export const loginUser = async (req: Request, res: Response) => {
   try {
+    console.log('Login request received:', req.body);
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
 
     if (user && (await user.comparePassword(password))) {
+      console.log('Login successful for user:', email);
       res.json({
         _id: user._id,
         name: user.name,
@@ -72,9 +78,11 @@ export const loginUser = async (req: Request, res: Response) => {
         token: generateToken((user._id as any).toString()),
       });
     } else {
+      console.log('Invalid login attempt for email:', email);
       res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
+    console.error('Error during login:', error);
     res.status(400).json({ message: 'Bad Request', error });
   }
 };

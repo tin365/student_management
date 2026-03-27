@@ -1,10 +1,9 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { AuthProvider, useAuth } from '../context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 
 export {
@@ -20,37 +19,9 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
-  const { user, loading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (loading) return;
-
-    const inAuthGroup = segments[0] === 'auth';
-
-    if (!user && !inAuthGroup) {
-      // Redirect to login if not authenticated
-      router.replace('/auth/login');
-    } else if (user && inAuthGroup) {
-      // Redirect to home if already authenticated
-      router.replace('/(tabs)');
-    }
-  }, [user, loading, segments]);
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#2196F3" />
-      </View>
-    );
-  }
-
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-      <Stack.Screen name="auth/register" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -76,10 +47,8 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <ThemeProvider value={DefaultTheme}>
-        <RootLayoutNav />
-      </ThemeProvider>
-    </AuthProvider>
+    <ThemeProvider value={DefaultTheme}>
+      <RootLayoutNav />
+    </ThemeProvider>
   );
 }
