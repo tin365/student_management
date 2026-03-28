@@ -43,6 +43,17 @@ export const useGoals = () => {
     }
   };
 
+  const completeGoal = async (id: string) => {
+    try {
+      const updated = await goalService.update(id, { progress: 100, status: 'completed' });
+      setGoals((prev) => prev.map((g) => (g._id === id ? updated : g)));
+      return updated;
+    } catch (err) {
+      setError('Failed to complete goal');
+      throw err;
+    }
+  };
+
   const removeGoal = async (id: string) => {
     try {
       await goalService.delete(id);
@@ -57,5 +68,5 @@ export const useGoals = () => {
     fetchGoals();
   }, [fetchGoals]);
 
-  return { goals, loading, error, refresh: fetchGoals, addGoal, updateGoalProgress, removeGoal };
+  return { goals, loading, error, refresh: fetchGoals, addGoal, updateGoalProgress, removeGoal, completeGoal };
 };

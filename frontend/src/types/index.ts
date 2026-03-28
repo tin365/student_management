@@ -23,6 +23,8 @@ export interface Goal {
   title: string;
   progress: number;
   deadline?: Date | string;
+  status?: 'active' | 'completed';
+  completedAt?: Date | string | null;
   createdAt?: string;
   updatedAt?: string;
 }

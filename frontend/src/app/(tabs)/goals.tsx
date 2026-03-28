@@ -10,7 +10,7 @@ import { useCallback } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 
 export default function GoalsScreen() {
-  const { goals, loading, error, addGoal, removeGoal, updateGoalProgress, refresh } = useGoals();
+  const { goals, loading, error, addGoal, removeGoal, updateGoalProgress, completeGoal, refresh } = useGoals();
   const tintColor = Colors.light.tint;
   
   const [newGoalTitle, setNewGoalTitle] = useState('');
@@ -170,19 +170,37 @@ export default function GoalsScreen() {
         onRefresh={refresh}
         refreshing={loading}
         renderItem={({ item }) => (
-          <View style={styles.goalItem}>
+          <View style={[styles.goalItem, item.status === 'completed' && styles.goalItemCompleted]}>
             <View style={styles.goalInfo}>
-              <Text style={styles.goalTitle}>{item.title}</Text>
-              <Text style={styles.goalProgress}>Progress: {item.progress}%</Text>
+              <Text style={[styles.goalTitle, item.status === 'completed' && styles.goalTitleCompleted]}>{item.title}</Text>
+              <Text style={[styles.goalProgress, item.status === 'completed' && styles.goalCompletedText]}>
+                {item.status === 'completed' ? '✅ Completed' : `Progress: ${item.progress}%`}
+              </Text>
+              {item.completedAt && (
+                <Text style={styles.goalCompletedAt}>Completed at: {new Date(item.completedAt).toLocaleString()}</Text>
+              )}
             </View>
+
             <View style={styles.actions}>
               <TouchableOpacity 
                 onPress={() => updateGoalProgress(item._id!, Math.min(item.progress + 10, 100))}
-                style={styles.actionButton}
+                style={[styles.actionButton, item.status === 'completed' && styles.actionButtonDisabled]}
                 activeOpacity={0.8}
+                disabled={item.status === 'completed' || item.progress >= 100}
               >
-                <SymbolView name="arrow.up.circle" size={24} tintColor="#4CAF50" />
+                <SymbolView name="arrow.up.circle" size={24} tintColor={item.status === 'completed' ? '#999' : '#4CAF50'} />
               </TouchableOpacity>
+
+              {!item.status || item.status !== 'completed' ? (
+                <TouchableOpacity 
+                  onPress={() => completeGoal(item._id!)}
+                  style={styles.actionButton}
+                  activeOpacity={0.8}
+                >
+                  <SymbolView name="checkmark.circle" size={24} tintColor="#2196F3" />
+                </TouchableOpacity>
+              ) : null}
+
               <TouchableOpacity 
                 onPress={() => removeGoal(item._id!)}
                 style={styles.actionButton}
@@ -334,6 +352,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: Theme.colors.surface,
   },
+  goalItemCompleted: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#C8E6C9',
+  },
   goalInfo: {
     backgroundColor: 'transparent',
   },
@@ -341,9 +363,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  goalTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: '#666',
+  },
   goalProgress: {
     fontSize: 14,
     opacity: 0.7,
+  },
+  goalCompletedText: {
+    color: '#4CAF50',
+    fontWeight: '500',
+  },
+  goalCompletedAt: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
   },
   actions: {
     flexDirection: 'row',
@@ -351,6 +386,9 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     marginLeft: 15,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
   errorText: {
     color: 'red',
