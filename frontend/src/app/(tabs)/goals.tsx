@@ -10,13 +10,19 @@ import { useCallback } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 
 export default function GoalsScreen() {
-  const { goals, loading, error, addGoal, removeGoal, updateGoalProgress, completeGoal, refresh } = useGoals();
+  const { goals, loading, error, addGoal, removeGoal, updateGoalProgress, completeGoal, refresh, addTask, updateTask, deleteTask } = useGoals();
   const tintColor = Colors.light.tint;
   
   const [newGoalTitle, setNewGoalTitle] = useState('');
   const { settings, loadSettings, setSettings } = useAppSettings();
   const [goalInput, setGoalInput] = useState('120');
   const [showSettings, setShowSettings] = useState(false);
+  const [newGoalCategory, setNewGoalCategory] = useState<'academic' | 'health' | 'skill' | 'other'>('academic');
+  const [newGoalPriority, setNewGoalPriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [newGoalDeadline, setNewGoalDeadline] = useState('');
+  const [newGoalDescription, setNewGoalDescription] = useState('');
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskInputs, setTaskInputs] = useState<Record<string, string>>({});
   const canAddGoal = Boolean(newGoalTitle.trim());
 
   useFocusEffect(
@@ -59,11 +65,43 @@ export default function GoalsScreen() {
   const handleAddGoal = async () => {
     if (!newGoalTitle.trim()) return;
     try {
-      await addGoal({ title: newGoalTitle, progress: 0 });
+      const createdGoal = await addGoal({
+        title: newGoalTitle,
+        category: newGoalCategory,
+        deadline: newGoalDeadline ? new Date(newGoalDeadline) : undefined,
+        priority: newGoalPriority,
+        description: newGoalDescription,
+        progress: 0,
+        status: 'active',
+        tasks: [],
+      });
+
+      if (!createdGoal.tasks || createdGoal.tasks.length === 0) {
+        Alert.alert('Create tasks', 'Please add at least one task for this goal to track progress.');
+      }
+
       setNewGoalTitle('');
+      setNewGoalDescription('');
+      setNewGoalDeadline('');
+      setNewGoalCategory('academic');
+      setNewGoalPriority('medium');
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const suggestTasksForGoal = (title: string) => {
+    const lower = title.toLowerCase();
+    if (lower.includes('study')) {
+      return ['Review notes', 'Practice exercises', 'Take a short quiz'];
+    }
+    if (lower.includes('health')) {
+      return ['Drink 8 cups of water', '30 min workout', 'Sleep 7-8 hours'];
+    }
+    if (lower.includes('skill')) {
+      return ['Watch tutorial', 'Do hands-on practice', 'Build a mini project'];
+    }
+    return ['Break task into smaller steps', 'Set interim checkpoints', 'Track progress daily'];
   };
 
   if (loading && goals.length === 0) {
@@ -152,15 +190,57 @@ export default function GoalsScreen() {
           onChangeText={setNewGoalTitle}
           placeholderTextColor="#888"
         />
-        <TouchableOpacity
-          style={[styles.addButton, !canAddGoal && styles.addButtonDisabled]}
-          onPress={handleAddGoal}
-          disabled={!canAddGoal}
-          activeOpacity={0.85}
-        >
-          <SymbolView name="plus.circle.fill" size={24} tintColor="#fff" />
-        </TouchableOpacity>
       </View>
+
+      <View style={styles.fieldRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Category (academic, health, skill, other)"
+          value={newGoalCategory}
+          onChangeText={(value) => setNewGoalCategory(value as typeof newGoalCategory)}
+          placeholderTextColor="#888"
+        />
+      </View>
+
+      <View style={styles.fieldRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Priority (high, medium, low)"
+          value={newGoalPriority}
+          onChangeText={(value) => setNewGoalPriority(value as typeof newGoalPriority)}
+          placeholderTextColor="#888"
+        />
+      </View>
+
+      <View style={styles.fieldRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Deadline (YYYY-MM-DD)"
+          value={newGoalDeadline}
+          onChangeText={setNewGoalDeadline}
+          placeholderTextColor="#888"
+        />
+      </View>
+
+      <View style={styles.fieldRow}>
+        <TextInput
+          style={[styles.input, { height: 80 }]}
+          placeholder="Description (optional)"
+          value={newGoalDescription}
+          onChangeText={setNewGoalDescription}
+          placeholderTextColor="#888"
+          multiline
+        />
+      </View>
+
+      <TouchableOpacity
+        style={[styles.addButton, !canAddGoal && styles.addButtonDisabled]}
+        onPress={handleAddGoal}
+        disabled={!canAddGoal}
+        activeOpacity={0.85}
+      >
+        <SymbolView name="plus.circle.fill" size={24} tintColor="#fff" />
+      </TouchableOpacity>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -209,6 +289,72 @@ export default function GoalsScreen() {
                 <SymbolView name="trash" size={24} tintColor="#F44336" />
               </TouchableOpacity>
             </View>
+
+            {/* Tasks List and Operations */}
+            {item.tasks && item.tasks.length > 0 ? (
+              <View style={styles.taskList}>
+                {item.tasks.map((task) => (
+                  <View key={task._id} style={styles.taskItem}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskStatus}>{task.status}</Text>
+                    <View style={styles.taskActions}>
+                      <TouchableOpacity
+                        disabled={task.status === 'completed'}
+                        onPress={() => updateTask(task._id!, { status: 'completed' })}
+                        style={[styles.taskActionButton, task.status === 'completed' && styles.actionButtonDisabled]}
+                      >
+                        <Text style={styles.taskActionText}>{task.status === 'completed' ? 'Done' : 'Mark Complete'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => deleteTask(task._id!, item._id!)}
+                        style={styles.taskActionButton}
+                      >
+                        <Text style={styles.taskActionText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.noTasksText}>No tasks yet; add one or tap suggestion below.</Text>
+            )}
+
+            <View style={styles.taskInputContainer}>
+              <TextInput
+                value={taskInputs[item._id!] || ''}
+                onChangeText={(value) => setTaskInputs((prev) => ({ ...prev, [item._id!]: value }))}
+                placeholder="New task title"
+                placeholderTextColor="#888"
+                style={styles.taskInput}
+              />
+              <TouchableOpacity
+                onPress={async () => {
+                  const text = taskInputs[item._id!]?.trim();
+                  if (!text) return;
+                  await addTask(item._id!, { title: text });
+                  setTaskInputs((prev) => ({ ...prev, [item._id!]: '' }));
+                }}
+                style={styles.taskAddButton}
+              >
+                <Text style={styles.taskAddButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {(!item.tasks || item.tasks.length === 0) && (
+              <View style={styles.suggestionContainer}>
+                {suggestTasksForGoal(item.title).map((suggested) => (
+                  <TouchableOpacity
+                    key={suggested}
+                    style={styles.suggestionButton}
+                    onPress={async () => {
+                      await addTask(item._id!, { title: suggested });
+                    }}
+                  >
+                    <Text style={styles.suggestionText}>{suggested}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>No goals yet. Add one above!</Text>}
@@ -398,5 +544,124 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 50,
     opacity: 0.5,
+  },
+  fieldRow: {
+    marginBottom: 12,
+  },
+  suggestionContainer: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    backgroundColor: '#f9f9f9',
+  },
+  suggestionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  suggestionTask: {
+    fontSize: 13,
+    color: '#333',
+    marginLeft: 10,
+  },
+  taskList: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border,
+    paddingTop: 10,
+  },
+  taskItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: Theme.radius.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+  },
+  taskTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  taskStatus: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  taskActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskActionButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: Theme.radius.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    marginLeft: 8,
+    backgroundColor: 'transparent',
+  },
+  taskActionText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#2196F3',
+  },
+  noTasksText: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  taskInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border,
+    paddingTop: 10,
+  },
+  taskInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.sm,
+    paddingHorizontal: 10,
+    marginRight: 10,
+    fontSize: 14,
+    color: '#333',
+  },
+  taskAddButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: Theme.radius.sm,
+    backgroundColor: '#2196F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskAddButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  suggestionButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: Theme.radius.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    marginRight: 8,
+    marginTop: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  suggestionText: {
+    fontSize: 12,
+    color: '#333',
   },
 });
