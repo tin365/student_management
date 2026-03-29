@@ -1,8 +1,8 @@
-import { StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useState } from 'react';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
@@ -10,11 +10,14 @@ import { Theme } from '@/constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
+import { useAuth } from '@/context/AuthContext';
 import { expenseService } from '@/services/expenseService';
 import { studySessionService } from '@/services/studySessionService';
 import { performStrictReset } from '@/utils/strictReset';
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const { settings, loadSettings, updateSetting, resetSettings } = useAppSettings();
   const [isExporting, setIsExporting] = useState(false);
   const [isStrictResetting, setIsStrictResetting] = useState(false);
@@ -26,6 +29,26 @@ export default function SettingsScreen() {
       loadSettings();
     }, [loadSettings])
   );
+
+  const handleLogout = async () => {
+    const confirm =
+      Platform.OS === 'web'
+        ? window.confirm('Log out?\n\nYou will need to sign in again to access your data.')
+        : await new Promise<boolean>((resolve) => {
+            Alert.alert('Log out', 'You will need to sign in again to access your data.', [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Log out', style: 'destructive', onPress: () => resolve(true) },
+            ]);
+          });
+
+    if (!confirm) return;
+
+    try {
+      await logout();
+    } finally {
+      router.replace('/auth/login');
+    }
+  };
 
   const handleResetData = () => {
     Alert.alert(
@@ -190,6 +213,22 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.title}>Settings</Text>
 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        {user?.email ? (
+          <Text style={styles.accountEmail} numberOfLines={1}>
+            Signed in as {user.email}
+          </Text>
+        ) : null}
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#B71C1C', marginBottom: 8 }]}
+          onPress={handleLogout}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.buttonText}>Log out</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Notification Settings */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🔔 Notifications</Text>
@@ -268,7 +307,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   title: {
     fontSize: Theme.typography.title,
@@ -287,6 +326,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     opacity: 0.8,
+  },
+  accountEmail: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 12,
   },
   settingItem: {
     marginBottom: 10,

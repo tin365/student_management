@@ -204,8 +204,11 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: Theme.spacing.lg,
     backgroundColor: Theme.colors.background,
+  },
+  contentContainer: {
+    padding: Theme.spacing.lg,
+    paddingBottom: 100, // Extra space for tab bar
   },
   header: {
     marginBottom: 20,

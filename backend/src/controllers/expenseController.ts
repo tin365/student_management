@@ -1,17 +1,20 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Expense from '../models/Expense.js';
 
-export const getExpenses = async (req: any, res: Response) => {
+export const getExpenses = async (req: Request, res: Response) => {
   try {
-    const expenses = await Expense.find({}).sort({ date: -1 });
+    const userId = req.user!.id;
+    const expenses = await Expense.find({ userId }).sort({ date: -1 });
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error });
   }
 };
 
-export const createExpense = async (req: any, res: Response) => {
+export const createExpense = async (req: Request, res: Response) => {
   try {
+    const userId = req.user!.id;
     const { amount, category, note, date, monthlyBudget } = req.body;
     const parsedAmount = Number(amount);
 
@@ -29,9 +32,12 @@ export const createExpense = async (req: any, res: Response) => {
       const monthStart = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), 1);
       const monthEnd = new Date(expenseDate.getFullYear(), expenseDate.getMonth() + 1, 1);
 
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+
       const currentMonthTotal = await Expense.aggregate([
         {
           $match: {
+            userId: userObjectId,
             date: { $gte: monthStart, $lt: monthEnd },
             currency: 'RM',
           },
@@ -58,6 +64,7 @@ export const createExpense = async (req: any, res: Response) => {
     }
 
     const newExpense = new Expense({
+      userId,
       amount: parsedAmount,
       currency: 'RM',
       category,
@@ -72,11 +79,14 @@ export const createExpense = async (req: any, res: Response) => {
   }
 };
 
-export const updateExpense = async (req: any, res: Response) => {
+export const updateExpense = async (req: Request, res: Response) => {
   try {
+    const userId = req.user!.id;
+    const body = { ...req.body };
+    delete body.userId;
     const updatedExpense = await Expense.findOneAndUpdate(
-      { _id: req.params.id },
-      req.body,
+      { _id: req.params.id, userId },
+      body,
       { new: true }
     );
     if (!updatedExpense) return res.status(404).json({ message: 'Not Found' });
@@ -86,9 +96,10 @@ export const updateExpense = async (req: any, res: Response) => {
   }
 };
 
-export const deleteExpense = async (req: any, res: Response) => {
+export const deleteExpense = async (req: Request, res: Response) => {
   try {
-    const deletedExpense = await Expense.findOneAndDelete({ _id: req.params.id });
+    const userId = req.user!.id;
+    const deletedExpense = await Expense.findOneAndDelete({ _id: req.params.id, userId });
     if (!deletedExpense) return res.status(404).json({ message: 'Not Found' });
     res.json({ message: 'Expense deleted' });
   } catch (error) {

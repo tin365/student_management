@@ -15,6 +15,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -59,6 +61,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await AsyncStorage.setItem('user', JSON.stringify(userData));
   };
 
+  const forgotPassword = async (email: string) => {
+    await api.post('/users/forgot-password', { email });
+  };
+
+  const resetPassword = async (token: string, password: string) => {
+    await api.post('/users/reset-password', { token, password });
+  };
+
   const logout = async () => {
     setUser(null);
     delete api.defaults.headers.common['Authorization'];
@@ -66,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, forgotPassword, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -38,13 +38,14 @@ export default function ReportsScreen() {
   // Generate last 6 months for selector
   const monthsList = useMemo(() => {
     const list: MonthYear[] = [];
+    const now = new Date();
     for (let i = 0; i < 6; i++) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
+      // Derive each month from the original `now` to avoid cumulative mutation bugs.
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       list.push({
         month: d.getMonth(),
         year: d.getFullYear(),
-        label: d.toLocaleString('default', { month: 'long', year: 'numeric' })
+        label: d.toLocaleString('default', { month: 'long', year: 'numeric' }),
       });
     }
     return list;
@@ -109,13 +110,16 @@ export default function ReportsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
       {/* Month Selector */}
       <View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthSelector}>
           {monthsList.map((m) => (
             <TouchableOpacity 
-              key={m.label} 
+              key={`${m.year}-${m.month}`} 
               style={[styles.monthTab, selectedMonth.label === m.label && styles.monthTabActive]}
               onPress={() => setSelectedMonth(m)}
               activeOpacity={0.85}
@@ -225,6 +229,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
+  },
+  contentContainer: {
+    paddingBottom: 100,
   },
   center: {
     flex: 1,

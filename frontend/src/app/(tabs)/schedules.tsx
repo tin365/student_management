@@ -82,6 +82,7 @@ export default function SchedulesScreen() {
           keyExtractor={(item) => item._id!}
           onRefresh={refresh}
           refreshing={loading}
+          contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={({ item }) => (
             <View style={styles.scheduleItem}>
               <View style={styles.scheduleInfo}>

@@ -73,6 +73,7 @@ export default function StudySessionsScreen() {
           keyExtractor={(item) => item._id!}
           onRefresh={refresh}
           refreshing={loading}
+          contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={({ item }) => (
             <View style={styles.sessionItem}>
               <View style={styles.sessionInfo}>

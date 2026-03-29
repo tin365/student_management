@@ -5,15 +5,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { View, ActivityIndicator } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from '@/context/AuthContext';
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
-
-export const unstable_settings = {
-  initialRouteName: '(tabs)',
-};
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -21,7 +19,9 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutNav() {
   return (
     <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="auth" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -43,12 +43,22 @@ export default function RootLayout() {
   }, [loaded]);
 
   if (!loaded) {
-    return null;
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator />
+        </View>
+      </SafeAreaProvider>
+    );
   }
 
   return (
-    <ThemeProvider value={DefaultTheme}>
-      <RootLayoutNav />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ThemeProvider value={DefaultTheme}>
+          <RootLayoutNav />
+        </ThemeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
