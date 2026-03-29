@@ -2,19 +2,19 @@ import api from './api';
 import { Task } from '../types';
 
 export const taskService = {
-  getAllForGoal: async (goalId: string) => {
-    const response = await api.get<Task[]>(`/tasks/${goalId}`);
+  getAll: async () => {
+    const response = await api.get<Task[]>('/tasks');
     return response.data;
   },
-  create: async (goalId: string, data: Partial<Task>) => {
-    const response = await api.post<Task>(`/tasks/${goalId}`, data);
+  create: async (data: Partial<Task>) => {
+    const response = await api.post<Task>('/tasks', data);
     return response.data;
   },
   update: async (id: string, data: Partial<Task>) => {
-    const response = await api.put<Task>(`/tasks/task/${id}`, data);
+    const response = await api.put<Task>(`/tasks/${id}`, data);
     return response.data;
   },
   delete: async (id: string) => {
-    await api.delete(`/tasks/task/${id}`);
+    await api.delete(`/tasks/${id}`);
   },
 };

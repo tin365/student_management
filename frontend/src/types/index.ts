@@ -20,25 +20,9 @@ export interface CreateExpenseInput {
 
 export interface Task {
   _id?: string;
-  goal?: string;
   title: string;
   status: 'not_started' | 'in_progress' | 'completed';
   dueDate?: Date | string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface Goal {
-  _id?: string;
-  title: string;
-  category: 'academic' | 'health' | 'skill' | string;
-  deadline?: Date | string;
-  priority: 'high' | 'medium' | 'low';
-  description?: string;
-  progress: number;
-  status?: 'active' | 'completed';
-  completedAt?: Date | string | null;
-  tasks?: Task[];
   createdAt?: string;
   updatedAt?: string;
 }

@@ -16,14 +16,12 @@ connectDB();
 
 // Route Imports
 import expenseRoutes from './routes/expenseRoutes.js';
-import goalRoutes from './routes/goalRoutes.js';
 import studySessionRoutes from './routes/studySessionRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 
 // API Routes
 app.use('/api/expenses', expenseRoutes);
-app.use('/api/goals', goalRoutes);
 app.use('/api/study-sessions', studySessionRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/tasks', taskRoutes);

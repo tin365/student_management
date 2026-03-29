@@ -56,15 +56,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="goals"
-        options={{
-          title: 'Goals',
-          tabBarIcon: ({ color }) => (
-            <SymbolView name="target" tintColor={color} size={28} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="study-sessions"
         options={{
           title: 'Study',

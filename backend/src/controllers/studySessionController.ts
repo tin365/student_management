@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import StudySession from '../models/StudySession.js';
 
 export const getStudySessions = async (req: any, res: Response) => {

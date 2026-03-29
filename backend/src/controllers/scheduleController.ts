@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import Schedule from '../models/Schedule.js';
 
 export const getSchedules = async (req: any, res: Response) => {

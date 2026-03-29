@@ -1,7 +1,6 @@
 import { StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useExpenses } from '@/hooks/useExpenses';
-import { useGoals } from '@/hooks/useGoals';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,7 +16,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function DashboardScreen() {
   const { expenses, refresh: refreshExpenses } = useExpenses();
-  const { goals, refresh: refreshGoals } = useGoals();
   const router = useRouter();
   const [showRecent, setShowRecent] = useState(false);
   const { settings, loadSettings } = useAppSettings();
@@ -26,9 +24,8 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshExpenses();
-      refreshGoals();
       loadSettings();
-    }, [refreshExpenses, refreshGoals])
+    }, [refreshExpenses])
   );
 
   const toggleRecent = () => {
@@ -54,7 +51,6 @@ export default function DashboardScreen() {
     return acc;
   }, {} as Record<string, number>);
 
-  const activeGoals = goals.filter(g => g.progress < 100).length;
   const recentExpenses = expenses.slice(0, 5);
 
   return (
@@ -108,14 +104,6 @@ export default function DashboardScreen() {
               </Text>
             )}
           </View>
-        </View>
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <SymbolView name="target" size={24} tintColor="#2196F3" />
-          <Text style={styles.statValue}>{activeGoals}</Text>
-          <Text style={styles.statLabel}>Active Goals</Text>
         </View>
       </View>
 
@@ -314,29 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#F44336',
     fontWeight: '700',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    marginBottom: 25,
-    backgroundColor: 'transparent',
-  },
-  statCard: {
-    flex: 1,
-    padding: 15,
-    borderRadius: Theme.radius.lg,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginVertical: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    opacity: 0.5,
   },
   categoryCard: {
     padding: 15,

@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -12,7 +12,6 @@ import { useCallback } from 'react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { expenseService } from '@/services/expenseService';
 import { studySessionService } from '@/services/studySessionService';
-import { goalService } from '@/services/goalService';
 import { performStrictReset } from '@/utils/strictReset';
 
 export default function SettingsScreen() {
@@ -80,8 +79,6 @@ export default function SettingsScreen() {
                   {
                     text: 'OK',
                     onPress: () => {
-                      // In a real app, you might reload the app here
-                      // For now, just reset the local state
                       setIsStrictResetting(false);
                     }
                   }
@@ -102,10 +99,9 @@ export default function SettingsScreen() {
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
-      const [expenses, sessions, goals] = await Promise.all([
+      const [expenses, sessions] = await Promise.all([
         expenseService.getAll(),
         studySessionService.getAll(),
-        goalService.getAll(),
       ]);
       const now = new Date();
       const timestamp = now.toLocaleString();
@@ -166,20 +162,6 @@ export default function SettingsScreen() {
                   <td>${new Date(s.date).toLocaleDateString()}</td>
                   <td>${s.subject}</td>
                   <td>${s.duration} mins</td>
-                </tr>
-              `).join('')}
-            </table>
-
-            <h2>🎯 Active Goals</h2>
-            <table>
-              <tr>
-                <th>Goal</th>
-                <th>Progress</th>
-              </tr>
-              ${goals.map(g => `
-                <tr>
-                  <td>${g.title}</td>
-                  <td>${g.progress}%</td>
                 </tr>
               `).join('')}
             </table>
@@ -308,6 +290,7 @@ const styles = StyleSheet.create({
   },
   settingItem: {
     marginBottom: 10,
+    backgroundColor: 'transparent',
   },
   row: {
     flexDirection: 'row',
@@ -330,32 +313,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     marginTop: 10,
     lineHeight: 18,
-  },
-  budgetInputContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  budgetInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  budgetSaveButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  budgetSaveButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
   },
   button: {
     paddingVertical: 14,

@@ -3,7 +3,6 @@ import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { Text, View } from '@/components/Themed';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useStudySessions } from '@/hooks/useStudySessions';
-import { useGoals } from '@/hooks/useGoals';
 import { SymbolView } from 'expo-symbols';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -18,7 +17,6 @@ type MonthYear = {
 export default function ReportsScreen() {
   const { expenses, loading: loadingExp, refresh: refreshExp } = useExpenses();
   const { sessions, loading: loadingStudy, refresh: refreshStudy } = useStudySessions();
-  const { goals, refresh: refreshGoals } = useGoals();
   const { settings, loadSettings } = useAppSettings();
   const [selectedMonth, setSelectedMonth] = useState<MonthYear>(() => {
     const now = new Date();
@@ -33,7 +31,6 @@ export default function ReportsScreen() {
     useCallback(() => {
       refreshExp();
       refreshStudy();
-      refreshGoals();
       loadSettings();
     }, [])
   );
@@ -91,8 +88,11 @@ export default function ReportsScreen() {
   const getGrade = () => {
     let score = 0;
     if (totalSpent <= settings.monthlyBudget) score += 50;
-    if (totalStudyMinutes > (settings.dailyStudyGoal * 20)) score += 50; // Goal based on 20 study days
-    else score += (totalStudyMinutes / (settings.dailyStudyGoal * 20)) * 50;
+    
+    // Study score based on daily target
+    const targetMonthlyStudy = (settings.dailyStudyGoal || 120) * 20; // 20 study days target
+    if (totalStudyMinutes > targetMonthlyStudy) score += 50;
+    else if (targetMonthlyStudy > 0) score += (totalStudyMinutes / targetMonthlyStudy) * 50;
 
     if (score >= 90) return 'A';
     if (score >= 75) return 'B';
@@ -103,7 +103,7 @@ export default function ReportsScreen() {
   if (loadingExp || loadingStudy) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={Theme.colors.tint} />
       </View>
     );
   }
@@ -111,20 +111,22 @@ export default function ReportsScreen() {
   return (
     <ScrollView style={styles.container}>
       {/* Month Selector */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthSelector}>
-        {monthsList.map((m) => (
-          <TouchableOpacity 
-            key={m.label} 
-            style={[styles.monthTab, selectedMonth.label === m.label && styles.monthTabActive]}
-            onPress={() => setSelectedMonth(m)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.monthTabText, selectedMonth.label === m.label && styles.monthTabTextActive]}>
-              {m.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthSelector}>
+          {monthsList.map((m) => (
+            <TouchableOpacity 
+              key={m.label} 
+              style={[styles.monthTab, selectedMonth.label === m.label && styles.monthTabActive]}
+              onPress={() => setSelectedMonth(m)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.monthTabText, selectedMonth.label === m.label && styles.monthTabTextActive]}>
+                {m.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Performance Summary Card */}
       <View style={styles.card}>
@@ -141,10 +143,6 @@ export default function ReportsScreen() {
             <SymbolView name="timer" size={16} tintColor="#9C27B0" />
             <Text style={styles.summaryLabel}>Top Study: {topSubject}</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <SymbolView name="target" size={16} tintColor="#2196F3" />
-            <Text style={styles.summaryLabel}>Total Goals: {goals.length}</Text>
-          </View>
         </View>
       </View>
 
@@ -159,7 +157,7 @@ export default function ReportsScreen() {
             </Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${Math.min((totalSpent/settings.monthlyBudget)*100, 100)}%`, backgroundColor: totalSpent > settings.monthlyBudget ? '#F44336' : '#4CAF50' }]} />
+            <View style={[styles.progressFill, { width: `${Math.min((totalSpent/(settings.monthlyBudget || 1))*100, 100)}%`, backgroundColor: totalSpent > settings.monthlyBudget ? '#F44336' : '#4CAF50' }]} />
           </View>
           
           <Text style={styles.subSectionTitle}>Spending by Category</Text>
@@ -211,8 +209,8 @@ export default function ReportsScreen() {
               ? `You've exceeded your budget by RM ${(totalSpent-settings.monthlyBudget).toFixed(2)}. Try to reduce spending next month.`
               : `Great job staying under budget! You have RM ${(settings.monthlyBudget-totalSpent).toFixed(2)} left.`}
             {"\n\n"}
-            {totalStudyMinutes < (settings.dailyStudyGoal * 10)
-              ? "Your study time is a bit low. Aim for more focus sessions next month to stay on top of your goals."
+            {totalStudyMinutes < ((settings.dailyStudyGoal || 120) * 10)
+              ? "Your study time is a bit low. Aim for more focus sessions next month to stay on track."
               : `Strong study performance in ${topSubject}! Keep up the momentum.`}
           </Text>
         </View>
@@ -245,6 +243,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderWidth: 1,
     borderColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface,
   },
   monthTabActive: {
     backgroundColor: Theme.colors.tint,
@@ -299,6 +298,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    backgroundColor: 'transparent',
   },
   summaryLabel: {
     fontSize: 13,
@@ -326,6 +326,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 10,
+    backgroundColor: 'transparent',
   },
   mainStatLabel: {
     fontSize: 14,
@@ -361,6 +362,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#f9f9f9',
+    backgroundColor: 'transparent',
   },
   itemName: {
     fontSize: 15,
@@ -380,6 +382,7 @@ const styles = StyleSheet.create({
   },
   adviceContent: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   adviceTitle: {
     fontSize: 16,

@@ -38,7 +38,7 @@ const resetDatabase = async () => {
       throw new Error('Failed to get database instance');
     }
 
-    const collections = ['expenses', 'goals', 'studysessions', 'schedules'];
+    const collections = ['expenses', 'studysessions', 'schedules'];
 
     // Get counts before reset
     console.log('📊 BEFORE RESET - Current Data:');

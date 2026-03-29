@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import Expense from '../models/Expense.js';
 
 export const getExpenses = async (req: any, res: Response) => {
@@ -67,6 +67,7 @@ export const createExpense = async (req: any, res: Response) => {
     const savedExpense = await newExpense.save();
     res.status(201).json(savedExpense);
   } catch (error) {
+    console.error('Error creating expense:', error);
     res.status(400).json({ message: 'Bad Request', error });
   }
 };

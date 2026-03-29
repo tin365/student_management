@@ -12,9 +12,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEYS = [
   'appSettings',
   'expenses',
-  'goals',
-  'studySessions',
+  'studysessions',
   'schedules',
+
   'userPreferences',
   'appCache',
   'authToken',
