@@ -12,6 +12,8 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function TabLayout() {
   const { user, loading } = useAuth();
+  // Must be called unconditionally to keep Hooks order stable across renders.
+  const headerShown = useClientOnlyValue(false, true);
 
   if (loading) {
     return (
@@ -54,7 +56,7 @@ export default function TabLayout() {
           color: Theme.colors.textPrimary,
           fontWeight: '700',
         },
-        headerShown: useClientOnlyValue(false, true),
+        headerShown,
       }}>
       <Tabs.Screen
         name="index"
