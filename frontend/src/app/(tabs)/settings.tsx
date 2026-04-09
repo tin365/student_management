@@ -21,7 +21,6 @@ export default function SettingsScreen() {
   const { settings, loadSettings, updateSetting, resetSettings } = useAppSettings();
   const [isExporting, setIsExporting] = useState(false);
   const [isStrictResetting, setIsStrictResetting] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,7 +65,6 @@ export default function SettingsScreen() {
               console.log('SettingsScreen: Reset completed, reloading settings');
               await loadSettings();
               console.log('SettingsScreen: Settings reloaded after reset');
-              setRefreshKey(prev => prev + 1);
               Alert.alert('Success', 'All local preferences have been reset to defaults.');
             } catch (error) {
               console.error('SettingsScreen: Error resetting data:', error);
@@ -92,17 +90,18 @@ export default function SettingsScreen() {
             try {
               console.log('SettingsScreen: Starting STRICT RESET');
               const stats = await performStrictReset();
+              await logout();
               console.log('SettingsScreen: Strict reset completed', stats);
-              setRefreshKey(prev => prev + 1);
               
               Alert.alert(
                 '✨ Strict Reset Complete',
-                `Successfully cleared ${stats.itemsCleared} items from device storage.\n\nPlease restart the app to complete the reset process.`,
+                `Successfully cleared ${stats.itemsCleared} items from device storage. You have been signed out.`,
                 [
                   {
                     text: 'OK',
                     onPress: () => {
                       setIsStrictResetting(false);
+                      router.replace('/auth/login');
                     }
                   }
                 ]

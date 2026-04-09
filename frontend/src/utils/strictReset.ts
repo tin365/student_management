@@ -14,6 +14,7 @@ const STORAGE_KEYS = [
   'expenses',
   'studysessions',
   'schedules',
+  'user',
 
   'userPreferences',
   'appCache',
